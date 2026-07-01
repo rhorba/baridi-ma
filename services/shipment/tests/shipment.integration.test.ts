@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from "vitest";
 import { GenericContainer, Wait, type StartedTestContainer } from "testcontainers";
 import { Pool } from "pg";
 import fs from "node:fs";
@@ -7,7 +7,9 @@ import Fastify, { type FastifyInstance } from "fastify";
 import fastifyJwt from "@fastify/jwt";
 
 vi.mock("../src/internal-client.js", () => ({ lookupUserByEmail: vi.fn() }));
+vi.mock("../src/telemetry-client.js", () => ({ fetchDeviceReadings: vi.fn(), fetchShipmentAlerts: vi.fn() }));
 import { lookupUserByEmail } from "../src/internal-client.js";
+import { fetchDeviceReadings, fetchShipmentAlerts } from "../src/telemetry-client.js";
 import { dbPlugin } from "../src/db.js";
 import { shipmentRoutes } from "../src/routes.js";
 
@@ -112,6 +114,10 @@ describe("POST /shipments", () => {
     expect(body.humidityMaxPct).toBe(70);
     expect(body.receiverId).toBe(RECEIVER_ID);
     expect(body.status).toBe("created");
+    // Device is auto-provisioned atomically with the shipment (Sprint 3).
+    expect(body.assignedDeviceId).toBeTruthy();
+    expect(typeof body.deviceToken).toBe("string");
+    expect(body.deviceToken.length).toBeGreaterThan(20);
   });
 
   it("rejects creation when the receiver email doesn't resolve", async () => {
@@ -565,6 +571,153 @@ describe("PATCH /shipments/:id/status", () => {
       headers: authHeaders(token),
       payload: { status: "in_transit" },
     });
+    expect(res.statusCode).toBe(400);
+  });
+});
+
+describe("GET /internal/devices/validate", () => {
+  async function createShipmentAndGetDeviceToken() {
+    vi.mocked(lookupUserByEmail).mockResolvedValueOnce({
+      id: RECEIVER_ID,
+      email: "receiver@example.com",
+      name: "Receiver",
+      role: "receiver",
+    });
+    const token = app.jwt.sign({ sub: SHIPPER_ID, role: "shipper", type: "access" });
+    const res = await app.inject({
+      method: "POST",
+      url: "/shipments",
+      headers: authHeaders(token),
+      payload: {
+        productType: "Dairy",
+        origin: "Casablanca",
+        destination: "Rotterdam",
+        receiverEmail: "receiver@example.com",
+        tempMinC: 2,
+        tempMaxC: 8,
+      },
+    });
+    return res.json();
+  }
+
+  it("rejects requests without the internal-service token", async () => {
+    const res = await app.inject({ method: "GET", url: "/internal/devices/validate?token=whatever" });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("returns device + shipment threshold info for a valid token", async () => {
+    const shipment = await createShipmentAndGetDeviceToken();
+    const res = await app.inject({
+      method: "GET",
+      url: `/internal/devices/validate?token=${shipment.deviceToken}`,
+      headers: { "x-internal-token": INTERNAL_TOKEN },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.deviceId).toBe(shipment.assignedDeviceId);
+    expect(body.shipmentId).toBe(shipment.id);
+    expect(body.tempMinC).toBe(2);
+    expect(body.tempMaxC).toBe(8);
+  });
+
+  it("returns 404 for an unknown device token", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/internal/devices/validate?token=not-a-real-token",
+      headers: { "x-internal-token": INTERNAL_TOKEN },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("returns 400 when the token query param is missing", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/internal/devices/validate",
+      headers: { "x-internal-token": INTERNAL_TOKEN },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+});
+
+describe("GET /shipments/:id/readings and /shipments/:id/alerts", () => {
+  beforeEach(() => {
+    vi.mocked(fetchDeviceReadings).mockClear();
+    vi.mocked(fetchShipmentAlerts).mockClear();
+  });
+
+  async function createShipment() {
+    vi.mocked(lookupUserByEmail).mockResolvedValueOnce({
+      id: RECEIVER_ID,
+      email: "receiver@example.com",
+      name: "Receiver",
+      role: "receiver",
+    });
+    const token = app.jwt.sign({ sub: SHIPPER_ID, role: "shipper", type: "access" });
+    const res = await app.inject({
+      method: "POST",
+      url: "/shipments",
+      headers: authHeaders(token),
+      payload: {
+        productType: "Dairy",
+        origin: "Casablanca",
+        destination: "Rotterdam",
+        receiverEmail: "receiver@example.com",
+        tempMinC: 2,
+        tempMaxC: 8,
+      },
+    });
+    return res.json();
+  }
+
+  it("lets the owning shipper fetch readings, proxied from Ingestion Service", async () => {
+    const shipment = await createShipment();
+    vi.mocked(fetchDeviceReadings).mockResolvedValueOnce([{ time: "t1", temperatureC: 4, humidityPct: 55 }]);
+    const token = app.jwt.sign({ sub: SHIPPER_ID, role: "shipper", type: "access" });
+
+    const res = await app.inject({ method: "GET", url: `/shipments/${shipment.id}/readings`, headers: authHeaders(token) });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual([{ time: "t1", temperatureC: 4, humidityPct: 55 }]);
+    expect(fetchDeviceReadings).toHaveBeenCalledWith(shipment.assignedDeviceId);
+  });
+
+  it("returns 404 for readings on a shipment the user doesn't own", async () => {
+    const shipment = await createShipment();
+    const token = app.jwt.sign({ sub: OTHER_SHIPPER_ID, role: "shipper", type: "access" });
+
+    const res = await app.inject({ method: "GET", url: `/shipments/${shipment.id}/readings`, headers: authHeaders(token) });
+    expect(res.statusCode).toBe(404);
+    expect(fetchDeviceReadings).not.toHaveBeenCalled();
+  });
+
+  it("lets the owning shipper fetch alerts, proxied from Alerting Service", async () => {
+    const shipment = await createShipment();
+    vi.mocked(fetchShipmentAlerts).mockResolvedValueOnce([{ id: "a1", reason: "temp_high" } as never]);
+    const token = app.jwt.sign({ sub: SHIPPER_ID, role: "shipper", type: "access" });
+
+    const res = await app.inject({ method: "GET", url: `/shipments/${shipment.id}/alerts`, headers: authHeaders(token) });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual([{ id: "a1", reason: "temp_high" }]);
+    expect(fetchShipmentAlerts).toHaveBeenCalledWith(shipment.id);
+  });
+
+  it("returns 404 for alerts on a shipment the user doesn't own", async () => {
+    const shipment = await createShipment();
+    const token = app.jwt.sign({ sub: OTHER_SHIPPER_ID, role: "shipper", type: "access" });
+
+    const res = await app.inject({ method: "GET", url: `/shipments/${shipment.id}/alerts`, headers: authHeaders(token) });
+    expect(res.statusCode).toBe(404);
+    expect(fetchShipmentAlerts).not.toHaveBeenCalled();
+  });
+
+  it("rejects a malformed shipment id for readings", async () => {
+    const token = app.jwt.sign({ sub: SHIPPER_ID, role: "shipper", type: "access" });
+    const res = await app.inject({ method: "GET", url: "/shipments/not-a-uuid/readings", headers: authHeaders(token) });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("rejects a malformed shipment id for alerts", async () => {
+    const token = app.jwt.sign({ sub: SHIPPER_ID, role: "shipper", type: "access" });
+    const res = await app.inject({ method: "GET", url: "/shipments/not-a-uuid/alerts", headers: authHeaders(token) });
     expect(res.statusCode).toBe(400);
   });
 });

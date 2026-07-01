@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useAuth } from "../../../lib/auth-context";
 import { StatusBadge } from "../../../components/status-badge";
-import type { Shipment, ShipmentStatus } from "@baridi-ma/shared-types";
+import { TemperatureChart } from "../../../components/temperature-chart";
+import { AlertsList } from "../../../components/alerts-list";
+import type { Shipment, ShipmentStatus, SensorReading, ShipmentAlert } from "@baridi-ma/shared-types";
 
 // Mirrors services/shipment/src/status-transitions.ts — UI affordance only,
 // the server is the source of truth and rejects anything invalid regardless.
@@ -15,14 +17,20 @@ const NEXT_STATUSES: Record<ShipmentStatus, ShipmentStatus[]> = {
   cancelled: [],
 };
 
+const TELEMETRY_POLL_MS = 5000;
+
 export default function ShipmentDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const { user, loading: authLoading, authFetch } = useAuth();
   const [shipment, setShipment] = useState<Shipment | null>(null);
+  const [readings, setReadings] = useState<SensorReading[]>([]);
+  const [alerts, setAlerts] = useState<ShipmentAlert[]>([]);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [carrierEmail, setCarrierEmail] = useState("");
   const [busy, setBusy] = useState(false);
+  const [revealedDeviceToken, setRevealedDeviceToken] = useState(searchParams.get("deviceToken"));
 
   const load = useCallback(async () => {
     const res = await authFetch(`/api/shipments/${id}`);
@@ -37,10 +45,22 @@ export default function ShipmentDetailPage() {
     setShipment(await res.json());
   }, [id, authFetch]);
 
+  const loadTelemetry = useCallback(async () => {
+    const [readingsRes, alertsRes] = await Promise.all([
+      authFetch(`/api/shipments/${id}/readings`),
+      authFetch(`/api/shipments/${id}/alerts`),
+    ]);
+    if (readingsRes.ok) setReadings(await readingsRes.json());
+    if (alertsRes.ok) setAlerts(await alertsRes.json());
+  }, [id, authFetch]);
+
   useEffect(() => {
     if (authLoading || !user) return;
     load();
-  }, [authLoading, user, load]);
+    loadTelemetry();
+    const interval = setInterval(loadTelemetry, TELEMETRY_POLL_MS);
+    return () => clearInterval(interval);
+  }, [authLoading, user, load, loadTelemetry]);
 
   if (authLoading) return <main className="p-6">Loading…</main>;
   if (!user) return <main className="p-6">Not logged in.</main>;
@@ -86,6 +106,7 @@ export default function ShipmentDetailPage() {
   const canAssignCarrier = user.role === "shipper" && shipment.shipperId === user.id && shipment.status === "created";
   const canUpdateStatus = user.role === "carrier" && shipment.carrierId === user.id;
   const nextStatuses = NEXT_STATUSES[shipment.status];
+  const latest = readings[readings.length - 1];
 
   return (
     <main className="mx-auto max-w-xl p-6">
@@ -106,11 +127,45 @@ export default function ShipmentDetailPage() {
           : ""}
       </p>
 
+      {latest && (
+        <p className="mt-2 text-sm font-medium">
+          Current: {latest.temperatureC}°C{latest.humidityPct !== null ? ` ${latest.humidityPct}% RH` : ""}
+        </p>
+      )}
+
+      {revealedDeviceToken && (
+        <div className="mt-4 rounded border border-[var(--color-warning)] bg-amber-50 p-3 text-sm">
+          <p className="font-medium">Device token (shown once — save it now)</p>
+          <p className="mt-1 break-all font-mono text-xs">{revealedDeviceToken}</p>
+          <p className="mt-1 text-[var(--color-text-muted)]">
+            Use this to configure the sensor or simulator publishing readings for this shipment.
+          </p>
+          <button
+            onClick={() => setRevealedDeviceToken(null)}
+            className="mt-2 text-xs text-[var(--color-secondary)] underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {error && (
         <p role="alert" className="mt-4 text-sm text-[var(--color-error)]">
           {error}
         </p>
       )}
+
+      {readings.length > 0 && (
+        <div className="mt-6">
+          <h2 className="mb-2 font-medium">Temperature history</h2>
+          <TemperatureChart readings={readings} tempMinC={shipment.tempMinC} tempMaxC={shipment.tempMaxC} />
+        </div>
+      )}
+
+      <div className="mt-6">
+        <h2 className="mb-2 font-medium">Alerts</h2>
+        <AlertsList alerts={alerts} />
+      </div>
 
       {canAssignCarrier && !shipment.carrierId && (
         <form onSubmit={assignCarrier} className="mt-6 flex flex-col gap-2 rounded border border-slate-200 p-4">

@@ -29,3 +29,7 @@ export const assignCarrierSchema = z.object({
 export const updateStatusSchema = z.object({
   status: z.enum(["in_transit", "delivered", "cancelled"]),
 });
+
+export const deviceTokenQuerySchema = z.object({
+  token: z.string().min(1),
+});

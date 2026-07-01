@@ -41,8 +41,9 @@ test("shipper creates a shipment via the UI and sees it in the list and detail v
   await page.getByPlaceholder("Max °C").fill("8");
   await page.getByRole("button", { name: "Create Shipment" }).click();
 
-  // Redirects to the detail page for the new shipment.
-  await expect(page).toHaveURL(/\/shipments\/[0-9a-f-]{36}$/);
+  // Redirects to the detail page for the new shipment (with a one-time
+  // device-token reveal in the query string — see alerting-flow.spec.ts).
+  await expect(page).toHaveURL(/\/shipments\/[0-9a-f-]{36}\?deviceToken=/);
   await expect(page.getByRole("heading", { name: "Dairy" })).toBeVisible();
   await expect(page.getByText("Casablanca → Rotterdam")).toBeVisible();
   await expect(page.getByText("Created", { exact: true })).toBeVisible();

@@ -23,3 +23,10 @@
 
 ## DECISION — 2026-07-01
 - Sprint 2: Shipment Service will enforce full defense-in-depth per Security baseline - independent JWT verification (not trusting BFF blindly) + x-internal-token check + per-resource ownership checks (shipperId/carrierId/receiverId).
+
+## DECISION — 2026-07-01
+- Sprint 3: MQTT device auth is app-layer (deviceToken field in payload, validated against shipment.devices), not broker-level ACLs. Mosquitto stays anonymous. Reason: matches Security baseline per-device-credential requirement without MQTT ACL file management overhead at pilot scale.
+- Gap found while planning: no endpoint exists to create/assign a device to a shipment (shipment.devices + shipments.assigned_device_id exist in schema but unused since Sprint 2). Will auto-provision one device per shipment at creation time in Shipment Service, returning deviceToken in the create-shipment response so a simulator/sensor can be configured with it. Keeps scope to what Stories 3.1-3.4 need without building a separate device-management flow.
+- Alerting Service fetches shipment thresholds via a new Shipment Service internal endpoint (GET /internal/shipments/:id, internal-token only, no JWT/ownership check since it is service-to-service) rather than direct cross-schema DB access, per architecture doc's stated design ("fetched from Shipment DB via internal API").
+- Alert dedup: skip creating a new alert if one already exists for the same shipment+reason within the last 5 minutes (basic debounce for burst readings, per Test Strategy adversarial checklist).
+- Email sending: nodemailer wired for real SMTP via env vars if provided, falls back to a no-op/logging transport when unset (no real SMTP credentials available for MVP) - same pattern as the CMI payment stub.

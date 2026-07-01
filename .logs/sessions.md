@@ -34,3 +34,6 @@
 - Full user journey now works end-to-end: register -> login -> create shipment -> assign carrier -> carrier transitions status -> all verified live in a real browser.
 - Known gap: no CI pipeline yet (GitHub Actions from devops-baridi-ma.md not built) - all verification this sprint was manual/local. Worth prioritizing early in Sprint 3 given rule 11's CI-monitoring requirement cannot apply without it.
 - Next session: start Sprint 3 (Epic 3 - Sensor Ingestion & Alerting: Stories 3.1 MQTT ingestion, 3.2 sensor simulator, 3.3 threshold alerting, 3.4 live tracking UI). Per orchestrator workflow, begin with UNDERSTAND/BRAINSTORM phases for Sprint 3 scope.
+
+## SESSION_START — 2026-07-01
+- Continuing from Sprint 2 (pushed, dd3fa8c). Starting Sprint 3: Epic 3 Sensor Ingestion \& Alerting, Stories 3.1-3.4.

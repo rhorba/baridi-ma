@@ -39,3 +39,16 @@
 - Bugs found and fixed during Sprint 2: missing AUTH_SERVICE_URL wiring for shipment-service in docker-compose (caused runtime fetch failures), leaked internal error messages to clients (added shared error handler to both backend services), a test mock-leak causing cascading failures, Semgrep Express-rule false positive on Fastify's safe reply.send().
 - Video: .recordings/v0.2-2026-07-01.webm (shipment management flow).
 - Pushed: commits d3281f4, 30a9bca to origin/main.
+
+## SPRINT_3_VERIFY — 2026-07-01
+- Auth Service: 100% stmt/branch/func/line, 30 tests.
+- Shipment Service: 98.88% stmt/line, 89.56% branch, 100% func, 65 tests.
+- Ingestion Service: 100% stmt/func/line, 92.68% branch, 24 tests.
+- Alerting Service: 98.85% stmt/line, 96% branch, 100% func, 26 tests.
+- Web BFF: 100% stmt/func/line, 98.21% branch, 38 tests.
+- Simulator: 100% stmt/branch/func/line, 5 tests.
+- Total: 188 unit/integration tests + 3 Playwright E2E tests (all run live in a real browser against the full stack), all passing.
+- Combined coverage for Sprint 3 business logic: well above the 80% gate on all 6 workspaces.
+- Security scan: Semgrep found 4 more instances of the known Fastify reply.send() false-positive (suppressed with the established nosemgrep pattern) plus one REAL finding - simulator/Dockerfile ran as root, missing USER directive (fixed, now consistent with all 5 other service Dockerfiles). Rescanned clean (0 findings, 508 rules / 197 files). Gitleaks found 2 false positives in .claude/settings.local.json (our own documented dev-only placeholder token appearing in local command history, a file that is gitignored by the user's global gitignore and will never be committed) - added to .gitleaks.toml allowlist for signal cleanliness, rescanned clean. Trivy 0 critical/high CVEs across all 3 lockfiles (root workspace, simulator, e2e).
+- Live verification: full stack (8 containers) health-checked, migrations applied, and the complete 3-spec Playwright E2E suite (auth flow, shipment flow, live-tracking-with-real-MQTT-publish flow) run twice for reliability confirmation, both runs 100% passing.
+- Stories 3.1-3.4 (Epic 3: Sensor Ingestion \& Alerting) fully complete - the core cold-chain value proposition now works end-to-end.

@@ -35,6 +35,25 @@ export interface Shipment {
   updatedAt: string;
 }
 
+export interface SensorReading {
+  time: string;
+  temperatureC: number;
+  humidityPct: number | null;
+}
+
+export type AlertReason = "temp_high" | "temp_low" | "humidity_high" | "humidity_low";
+
+export interface ShipmentAlert {
+  id: string;
+  shipmentId: string;
+  deviceId: string;
+  readingTime: string;
+  reason: AlertReason;
+  value: number;
+  threshold: number;
+  createdAt: string;
+}
+
 // ADR-4: payments are a port/adapter — MVP ships only a stub implementation.
 export interface PaymentProvider {
   charge(shipmentId: string, amountMad: number): Promise<{ status: "succeeded" | "failed"; reference: string }>;

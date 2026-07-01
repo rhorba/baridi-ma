@@ -45,6 +45,8 @@ services:
       DATABASE_URL: postgresql://baridi:baridi@postgres:5432/baridi_ma
       PORT: 4002
       AUTH_SERVICE_URL: http://auth-service:4001
+      INGESTION_SERVICE_URL: http://ingestion-service:4003
+      ALERTING_SERVICE_URL: http://alerting-service:4004
     ports:
       - "4002:4002"
     depends_on:
@@ -52,6 +54,10 @@ services:
         condition: service_healthy
       auth-service:
         condition: service_started
+    # Not depends_on: ingestion-service / alerting-service — that would create
+    # a startup cycle (ingestion-service depends on shipment-service for device
+    # validation). Readings/alerts proxying tolerates the other service not
+    # being up yet (telemetry-client.ts returns [] on a failed fetch).
 
   ingestion-service:
     build:
@@ -61,6 +67,7 @@ services:
     environment:
       DATABASE_URL: postgresql://baridi:baridi@postgres:5432/baridi_ma
       MQTT_BROKER_URL: mqtt://mosquitto:1883
+      SHIPMENT_SERVICE_URL: http://shipment-service:4002
       PORT: 4003
     ports:
       - "4003:4003"
@@ -68,6 +75,8 @@ services:
       postgres:
         condition: service_healthy
       mosquitto:
+        condition: service_started
+      shipment-service:
         condition: service_started
 
   alerting-service:
@@ -114,6 +123,19 @@ services:
       - shipment-service
       - alerting-service
       - compliance-service
+
+  # Opt-in only (profile "simulator") — needs a real device token from an
+  # already-created shipment, which doesn't exist on a fresh `docker compose up`.
+  # Run with: docker compose --profile simulator run --rm -e SIMULATOR_DEVICE_TOKEN=<token> sensor-simulator
+  sensor-simulator:
+    profiles: ["simulator"]
+    build:
+      context: .
+      dockerfile: simulator/Dockerfile
+    environment:
+      MQTT_BROKER_URL: mqtt://mosquitto:1883
+    depends_on:
+      - mosquitto
 
 volumes:
   postgres_data:

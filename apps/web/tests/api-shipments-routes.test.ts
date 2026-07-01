@@ -4,6 +4,8 @@ import { GET as listRoute, POST as createRoute } from "../app/api/shipments/rout
 import { GET as detailRoute } from "../app/api/shipments/[id]/route";
 import { PATCH as assignCarrierRoute } from "../app/api/shipments/[id]/assign-carrier/route";
 import { PATCH as statusRoute } from "../app/api/shipments/[id]/status/route";
+import { GET as readingsRoute } from "../app/api/shipments/[id]/readings/route";
+import { GET as alertsRoute } from "../app/api/shipments/[id]/alerts/route";
 
 const secret = new TextEncoder().encode("test-secret-for-web-unit-tests");
 
@@ -145,5 +147,47 @@ describe("PATCH /api/shipments/:id/status", () => {
     );
     expect(res.status).toBe(200);
     expect(fetchMock.mock.calls[0][0]).toContain("/shipments/s1/status");
+  });
+});
+
+describe("GET /api/shipments/:id/readings", () => {
+  it("returns 401 with no Authorization header", async () => {
+    const res = await readingsRoute(new Request("http://localhost/api/shipments/s1/readings"), withParams("s1"));
+    expect(res.status).toBe(401);
+  });
+
+  it("forwards to the Shipment Service with the resolved id", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse([{ time: "t1", temperatureC: 4, humidityPct: 55 }]));
+    vi.stubGlobal("fetch", fetchMock);
+    const token = await makeAccessToken();
+
+    const res = await readingsRoute(
+      new Request("http://localhost/api/shipments/s1/readings", { headers: { authorization: `Bearer ${token}` } }),
+      withParams("s1"),
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual([{ time: "t1", temperatureC: 4, humidityPct: 55 }]);
+    expect(fetchMock.mock.calls[0][0]).toContain("/shipments/s1/readings");
+  });
+});
+
+describe("GET /api/shipments/:id/alerts", () => {
+  it("returns 401 with no Authorization header", async () => {
+    const res = await alertsRoute(new Request("http://localhost/api/shipments/s1/alerts"), withParams("s1"));
+    expect(res.status).toBe(401);
+  });
+
+  it("forwards to the Shipment Service with the resolved id", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse([{ id: "a1", reason: "temp_high" }]));
+    vi.stubGlobal("fetch", fetchMock);
+    const token = await makeAccessToken();
+
+    const res = await alertsRoute(
+      new Request("http://localhost/api/shipments/s1/alerts", { headers: { authorization: `Bearer ${token}` } }),
+      withParams("s1"),
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual([{ id: "a1", reason: "temp_high" }]);
+    expect(fetchMock.mock.calls[0][0]).toContain("/shipments/s1/alerts");
   });
 });

@@ -49,7 +49,9 @@ export default function NewShipmentPage() {
       setError(typeof data.error === "string" ? data.error : "Couldn't create shipment");
       return;
     }
-    router.push(`/shipments/${data.id}`);
+    // deviceToken is only ever returned here, at creation — carry it to the
+    // detail page for a one-time reveal banner (see ShipmentDetailPage).
+    router.push(`/shipments/${data.id}?deviceToken=${encodeURIComponent(data.deviceToken)}`);
   }
 
   return (
