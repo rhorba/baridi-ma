@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { AuthUser, Role } from "@baridi-ma/shared-types";
 
 interface AuthState {
@@ -72,11 +72,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
-  async function authFetch(url: string, options: RequestInit = {}) {
-    const headers = new Headers(options.headers);
-    if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
-    return fetch(url, { ...options, headers });
-  }
+  const authFetch = useCallback(
+    async (url: string, options: RequestInit = {}) => {
+      const headers = new Headers(options.headers);
+      if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+      return fetch(url, { ...options, headers });
+    },
+    [accessToken],
+  );
 
   return (
     <AuthContext.Provider value={{ user, accessToken, loading, login, register, logout, authFetch }}>

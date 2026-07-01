@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "../../lib/auth-context";
 
 export default function LoginPage() {
@@ -58,9 +59,9 @@ export default function LoginPage() {
           {submitting ? "Logging in…" : "Log in"}
         </button>
       </form>
-      <a href="/register" className="text-sm text-[var(--color-secondary)] underline">
+      <Link href="/register" className="text-sm text-[var(--color-secondary)] underline">
         Need an account? Register
-      </a>
+      </Link>
     </main>
   );
 }

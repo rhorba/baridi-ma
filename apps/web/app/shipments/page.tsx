@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "../../lib/auth-context";
 import { StatusBadge } from "../../components/status-badge";
 import type { Shipment } from "@baridi-ma/shared-types";
@@ -20,7 +21,7 @@ export default function ShipmentsPage() {
       }
       setShipments(await res.json());
     })();
-  }, [authLoading, user]);
+  }, [authLoading, user, authFetch]);
 
   if (authLoading) {
     return <main className="p-6">Loading…</main>;
@@ -34,14 +35,14 @@ export default function ShipmentsPage() {
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-semibold">Shipments</h1>
         {user?.role === "shipper" && (
-          <a href="/shipments/new" className="rounded bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white">
+          <Link href="/shipments/new" className="rounded bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white">
             + New Shipment
-          </a>
+          </Link>
         )}
       </div>
-      <a href="/dashboard" className="mb-4 inline-block text-sm text-[var(--color-secondary)] underline">
+      <Link href="/dashboard" className="mb-4 inline-block text-sm text-[var(--color-secondary)] underline">
         Back to Dashboard
-      </a>
+      </Link>
 
       {error && <p className="text-[var(--color-error)]">{error}</p>}
 

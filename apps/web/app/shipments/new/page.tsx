@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "../../../lib/auth-context";
 
 export default function NewShipmentPage() {
@@ -123,9 +124,9 @@ export default function NewShipmentPage() {
           {submitting ? "Creating…" : "Create Shipment"}
         </button>
       </form>
-      <a href="/shipments" className="text-sm text-[var(--color-secondary)] underline">
+      <Link href="/shipments" className="text-sm text-[var(--color-secondary)] underline">
         Cancel
-      </a>
+      </Link>
     </main>
   );
 }

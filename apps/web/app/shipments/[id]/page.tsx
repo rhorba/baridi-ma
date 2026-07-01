@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "../../../lib/auth-context";
 import { StatusBadge } from "../../../components/status-badge";
 import { TemperatureChart } from "../../../components/temperature-chart";
@@ -110,9 +111,9 @@ export default function ShipmentDetailPage() {
 
   return (
     <main className="mx-auto max-w-xl p-6">
-      <a href="/shipments" className="mb-4 inline-block text-sm text-[var(--color-secondary)] underline">
+      <Link href="/shipments" className="mb-4 inline-block text-sm text-[var(--color-secondary)] underline">
         ← Shipments
-      </a>
+      </Link>
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-semibold">{shipment.productType}</h1>
         <StatusBadge status={shipment.status} />
