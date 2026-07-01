@@ -112,3 +112,11 @@
 - 65 shipment-service tests + 38 web tests passing, both ~98-100% coverage. Extended Playwright E2E suite with a full live-data flow: create shipment via UI -> capture device token from the reveal banner -> publish a real breaching reading via MQTT from the test itself -> reload -> verify the chart and alert appear in the browser. All 3 E2E specs passing.
 - Bug found and fixed: added INGESTION_SERVICE_URL/ALERTING_SERVICE_URL depends_on edges to shipment-service, creating a circular Docker Compose dependency (ingestion-service already depended on shipment-service from Batch 1) that broke the entire stack startup ("dependency cycle detected"). Fixed by dropping the new depends_on edges - not needed at runtime since telemetry-client.ts already tolerates the other service not being ready (returns empty array on fetch failure).
 - Found and fixed E2E test flakiness: 3 parallel Playwright workers caused real resource contention against the single-instance Docker stack (not a code bug - confirmed by rerunning with --workers=1, 100% reliable). Set workers:1 in playwright.config.ts, documented as consistent with the System Design doc's vertical-scaling-only MVP decision.
+
+## ACTIVITY — 2026-07-01
+- Resumed session: docker compose up -d --build (all 8 containers up, postgres healthy), migrations confirmed already applied (001-005), all 6 services confirmed healthy (5 via /health 200, web via / 200 - Next.js BFF has no /health route). Full Playwright E2E suite rerun fresh: 3/3 passing (auth-flow, shipment-flow, alerting-flow).
+
+## VIDEO_RECORDED — 2026-07-01
+- .recordings/v0.3-2026-07-01.webm
+- Scenario: shipper creates a shipment via UI -> captures device token from the one-time reveal banner -> a real breaching sensor reading is published over live MQTT -> page reloads -> live temperature chart (with threshold reference lines) and the resulting alert both appear in the browser, polling-driven.
+- Covers the new critical flow shipped in Sprint 3 (sensor ingestion + threshold alerting + live tracking UI, Epic 3). Recorded via e2e/tests/alerting-flow.spec.ts against the live docker-compose stack.
