@@ -131,3 +131,6 @@
 - Added enforced 80% coverage thresholds (statements/branches/functions/lines) to all 6 logic-bearing vitest.config.ts files - turns the manual per-sprint coverage check into an automated CI gate. Verified locally first: full test:coverage run across all workspaces passes clean, exit code 0, no threshold failures.
 - compliance service (still a Sprint-1 health-check stub, no logic yet) given a minimal vitest.config.ts with passWithNoTests:true so its empty test suite doesn't break the CI test job; coverage gate deferred until Sprint 4 (Story 4.1) adds real logic.
 - Added root package.json test:coverage script (npm run test:coverage --workspaces --if-present).
+
+## ACTIVITY — 2026-07-01
+- CI: green on main (2c488a1). First fully-passing run of the new pipeline - security-scan, lint, test (80% coverage gate held on all workspaces on a clean GitHub-hosted runner too, not just locally), and all 6 Docker image builds all passed. Batch 1 (CI workflow) is complete and verified live, not just written.
