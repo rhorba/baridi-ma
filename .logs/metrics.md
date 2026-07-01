@@ -19,3 +19,13 @@
 - Bugs found and fixed during Sprint 1: cookie Secure-flag env detection bug, logout navigation bug, 6 stray stale compiled JS/d.ts files from a silent tsc emit-on-error gap, .gitignore incorrectly excluding mandated video recordings, npm port conflict with unrelated local project.
 - Video: .recordings/v0.1-2026-07-01.webm (auth flow: register->login->dashboard->logout).
 - Pushed: commits 40774df, d9164df to origin/main.
+
+## SPRINT_2_VERIFY — 2026-07-01
+- Auth Service: 100% stmt/branch/func/line coverage, 30 tests (added internal user-lookup endpoint + error handler this sprint).
+- Shipment Service: 100% stmt/func/line, 94.18% branch, 51 tests (create/list/detail, carrier assignment, status transitions, ownership/IDOR checks, adversarial cases).
+- Web BFF: 100% stmt/func/line, 98.07% branch, 34 tests (shipment proxy routes, shared requireBearerToken helper).
+- Total: 115 unit/integration tests + 2 Playwright E2E tests (both run live against the full stack in a real browser), all passing.
+- Combined coverage for Sprint 2 business logic: well above the 80% gate on all 3 workspaces.
+- Security scan: Semgrep found 3 blocking findings (XSS rule false-positive - Express-specific rule misfiring on Fastify's safe JSON reply.send(), verified not exploitable, frontend also auto-escapes via React) - suppressed with justified inline nosemgrep comments, rescanned clean (0 findings, 508 rules / 166 files). Gitleaks 0 leaks. Trivy 0 critical/high CVEs.
+- Live verification: all 6 services healthy, full shipment lifecycle (create->assign carrier->in_transit->delivered) verified via curl AND via Playwright browser automation, audit log confirmed via direct DB query.
+- Stories 2.1-2.3 (Epic 2: Shipment Management) fully complete.

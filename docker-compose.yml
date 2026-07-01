@@ -44,11 +44,14 @@ services:
     environment:
       DATABASE_URL: postgresql://baridi:baridi@postgres:5432/baridi_ma
       PORT: 4002
+      AUTH_SERVICE_URL: http://auth-service:4001
     ports:
       - "4002:4002"
     depends_on:
       postgres:
         condition: service_healthy
+      auth-service:
+        condition: service_started
 
   ingestion-service:
     build:
@@ -103,6 +106,7 @@ services:
     environment:
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       AUTH_SERVICE_URL: http://auth-service:4001
+      SHIPMENT_SERVICE_URL: http://shipment-service:4002
     ports:
       - "3000:3000"
     depends_on:

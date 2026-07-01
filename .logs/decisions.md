@@ -20,3 +20,6 @@
 
 ## DECISION — 2026-07-01
 - Monorepo tooling: npm workspaces (simple, no extra build tool needed at 6-package scale).
+
+## DECISION — 2026-07-01
+- Sprint 2: Shipment Service will enforce full defense-in-depth per Security baseline - independent JWT verification (not trusting BFF blindly) + x-internal-token check + per-resource ownership checks (shipperId/carrierId/receiverId).

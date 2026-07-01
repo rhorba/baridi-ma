@@ -23,9 +23,15 @@ export default function DashboardPage() {
     <main className="p-6">
       <h1 className="text-xl font-semibold">Welcome, {user.name}</h1>
       <p className="text-[var(--color-text-muted)]">Role: {user.role}</p>
+      <a
+        href="/shipments"
+        className="mt-4 inline-block rounded bg-[var(--color-primary)] px-4 py-2 font-medium text-white"
+      >
+        View Shipments
+      </a>
       <button
         onClick={handleLogout}
-        className="mt-4 rounded bg-[var(--color-secondary)] px-4 py-2 font-medium text-white"
+        className="mt-4 ml-2 rounded bg-[var(--color-secondary)] px-4 py-2 font-medium text-white"
       >
         Log out
       </button>

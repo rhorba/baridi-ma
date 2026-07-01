@@ -24,3 +24,6 @@
 - Working docker-compose stack: 5 backend services + Next.js BFF + Postgres/TimescaleDB + Mosquitto, all health-checked live.
 - Auth flow fully functional end-to-end: register, login, refresh, logout, dashboard, route protection - verified live and via Playwright E2E recording.
 - Next session: start Sprint 2 (Epic 2 - Shipment Management: Stories 2.1 CRUD, 2.2 carrier assignment/status, 2.3 list/detail UI). Per orchestrator workflow, begin with UNDERSTAND/BRAINSTORM phases for Sprint 2 scope.
+
+## SESSION_START — 2026-07-01
+- Continuing from Sprint 1 (pushed, 975cf4c). Starting Sprint 2: Epic 2 Shipment Management, Stories 2.1-2.3.

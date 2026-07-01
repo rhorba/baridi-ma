@@ -7,6 +7,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import fastifyJwt from "@fastify/jwt";
 import { dbPlugin } from "../src/db.js";
 import { authRoutes } from "../src/routes.js";
+import { internalRoutes } from "../src/internal-routes.js";
 
 let container: StartedTestContainer;
 let migrationPool: Pool;
@@ -23,6 +24,7 @@ beforeAll(async () => {
   const host = container.getHost();
   process.env.DATABASE_URL = `postgresql://baridi:baridi@${host}:${port}/baridi_ma`;
   process.env.JWT_SECRET = "test-secret";
+  process.env.INTERNAL_SERVICE_TOKEN = "test-internal-token";
 
   migrationPool = new Pool({ connectionString: process.env.DATABASE_URL });
   const migrationSql = fs.readFileSync(
@@ -35,6 +37,7 @@ beforeAll(async () => {
   await app.register(fastifyJwt, { secret: process.env.JWT_SECRET });
   await app.register(dbPlugin);
   await app.register(authRoutes);
+  await app.register(internalRoutes);
   await app.ready();
 }, 60_000);
 
@@ -188,5 +191,61 @@ describe("auth flow", () => {
       headers: { authorization: `Bearer ${forgedToken}` },
     });
     expect(res.statusCode).toBe(401);
+  });
+});
+
+describe("GET /internal/users/lookup", () => {
+  it("rejects requests without a valid internal-service token", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/internal/users/lookup?email=amina@example.com",
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("rejects requests with the wrong internal-service token", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/internal/users/lookup?email=amina@example.com",
+      headers: { "x-internal-token": "wrong-token" },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("finds a registered user by email with the correct internal token", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/internal/users/lookup?email=amina@example.com",
+      headers: { "x-internal-token": "test-internal-token" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().role).toBe("shipper");
+  });
+
+  it("returns 404 for an email that doesn't exist", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/internal/users/lookup?email=nobody@example.com",
+      headers: { "x-internal-token": "test-internal-token" },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("returns 404 when the role filter doesn't match (doesn't leak that the email exists)", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/internal/users/lookup?email=amina@example.com&role=receiver",
+      headers: { "x-internal-token": "test-internal-token" },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("returns 400 when email is missing", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/internal/users/lookup",
+      headers: { "x-internal-token": "test-internal-token" },
+    });
+    expect(res.statusCode).toBe(400);
   });
 });

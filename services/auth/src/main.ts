@@ -2,6 +2,8 @@ import Fastify from "fastify";
 import fastifyJwt from "@fastify/jwt";
 import { dbPlugin } from "./db.js";
 import { authRoutes } from "./routes.js";
+import { internalRoutes } from "./internal-routes.js";
+import { registerErrorHandler } from "./error-handler.js";
 
 const PORT = Number(process.env.PORT ?? 4001);
 
@@ -13,9 +15,11 @@ async function start() {
     throw new Error("JWT_SECRET env var is required");
   }
 
+  registerErrorHandler(app);
   await app.register(fastifyJwt, { secret: jwtSecret });
   await app.register(dbPlugin);
   await app.register(authRoutes);
+  await app.register(internalRoutes);
 
   app.get("/health", async () => ({ status: "ok", service: "auth" }));
 

@@ -17,6 +17,24 @@ export interface JwtClaims {
   exp: number;
 }
 
+export interface Shipment {
+  id: string;
+  shipperId: string;
+  carrierId: string | null;
+  receiverId: string;
+  assignedDeviceId: string | null;
+  productType: string;
+  origin: string;
+  destination: string;
+  tempMinC: number;
+  tempMaxC: number;
+  humidityMinPct: number | null;
+  humidityMaxPct: number | null;
+  status: ShipmentStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ADR-4: payments are a port/adapter — MVP ships only a stub implementation.
 export interface PaymentProvider {
   charge(shipmentId: string, amountMad: number): Promise<{ status: "succeeded" | "failed"; reference: string }>;

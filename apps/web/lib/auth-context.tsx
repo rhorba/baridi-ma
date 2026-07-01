@@ -15,6 +15,7 @@ interface AuthState {
     role: Exclude<Role, "admin">;
   }) => Promise<{ ok: boolean; error?: string }>;
   logout: () => Promise<void>;
+  authFetch: (url: string, options?: RequestInit) => Promise<Response>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -71,8 +72,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
+  async function authFetch(url: string, options: RequestInit = {}) {
+    const headers = new Headers(options.headers);
+    if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+    return fetch(url, { ...options, headers });
+  }
+
   return (
-    <AuthContext.Provider value={{ user, accessToken, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, accessToken, loading, login, register, logout, authFetch }}>
       {children}
     </AuthContext.Provider>
   );

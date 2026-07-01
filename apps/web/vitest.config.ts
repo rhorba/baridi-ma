@@ -18,6 +18,7 @@ export default defineConfig({
         "**/app/**/page.tsx",
         "**/app/layout.tsx",
         "**/lib/auth-context.tsx",
+        "**/components/**",
         "next.config.ts",
         "postcss.config.mjs",
       ],

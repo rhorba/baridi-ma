@@ -66,3 +66,20 @@
 ## PUSH — 2026-07-01
 - Commit 40774df "feat: Sprint 1 foundation" pushed to origin/main.
 - Commit d9164df "fix: redirect to login after logout; add E2E recording for v0.1" pushed to origin/main.
+
+## ACTIVITY — 2026-07-01
+- Batch 1 (Story 2.1) complete: Shipment Service built with full defense-in-depth (JWT self-verification, x-internal-token guard, per-resource ownership checks). POST/GET /shipments, GET /shipments/:id.
+- Added Auth Service internal endpoint GET /internal/users/lookup (x-internal-token protected) so Shipment Service can resolve a receiver email to a real user id instead of trusting an arbitrary client-supplied UUID - this is the app-layer FK enforcement the Database doc called for.
+- 58 tests passing (30 auth-service, 28 shipment-service), 100% stmt/func/line coverage, 94-100% branch on both services.
+- Bugs found and fixed via live verification (not caught by mocked unit tests): (1) AUTH_SERVICE_URL was never wired into shipment-service's docker-compose environment, causing fetch failed at runtime; (2) that failure leaked a raw error message to the client (Security baseline violation) - added a global error handler (masks 5xx details, passes through 4xx messages) to both auth-service and shipment-service.
+- Live-verified: shipment creation with real Auth Service lookup, role-scoped listing, IDOR protection (404 not 403 for non-owned shipments, avoiding existence leaks), admin bypass.
+
+## ACTIVITY — 2026-07-01
+- Batch 2 (Story 2.2) complete: PATCH /shipments/:id/assign-carrier (Shipper/Admin, resolves carrier email, only while status=created) and PATCH /shipments/:id/status (Carrier/Admin, enforces created->in_transit->delivered/cancelled transition graph). Both write to shipment.audit_log.
+- 51 tests passing in shipment-service (100% stmt/func/line, 94.18% branch). Caught a real mock-leak bug in a status-check-short-circuit test during development, fixed before it caused flaky cascading failures.
+- Live-verified: assign-carrier, invalid transition rejection (created->delivered blocked), valid transitions (created->in_transit->delivered), terminal-state protection (no transitions out of delivered/cancelled), audit log entries confirmed via direct DB query.
+
+## ACTIVITY — 2026-07-01
+- Batch 3 (Story 2.3) complete: BFF shipment proxy routes (GET/POST /api/shipments, GET/PATCH /api/shipments/[id]/*) with shared requireBearerToken helper (refactored /api/auth/me to use it too). Shipment list, new-shipment form, and detail pages with role-conditional assign-carrier and status-update UI. Added shared Shipment type to shared-types.
+- 34 web tests passing (100% stmt/func/line, 98.07% branch on logic-bearing files). Extended Playwright E2E suite with a full shipment flow: shipper creates shipment via UI -> sees it in list/detail -> assigns carrier via on-page form -> carrier logs in -> transitions status via UI buttons. Both E2E tests passing, run live in a real browser against the full stack (not curl-only).
+- middleware.ts extended to protect /shipments routes.
