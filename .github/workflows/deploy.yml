@@ -18,7 +18,10 @@ jobs:
     environment: staging
     defaults:
       run:
-        shell: bash
+        # Explicit path: "bash" on this runner's PATH resolves to Windows' built-in
+        # WSL bash stub (no distro installed) before Git Bash, since System32
+        # precedes Git in system PATH order.
+        shell: 'C:\Program Files\Git\bin\bash.exe -e {0}'
     steps:
       # clean:false preserves the runner-local .env (never committed, seeded once by
       # hand on this host per docs/devops-baridi-ma.md Sec 3) across checkouts.
@@ -41,7 +44,10 @@ jobs:
     environment: production
     defaults:
       run:
-        shell: bash
+        # Explicit path: "bash" on this runner's PATH resolves to Windows' built-in
+        # WSL bash stub (no distro installed) before Git Bash, since System32
+        # precedes Git in system PATH order.
+        shell: 'C:\Program Files\Git\bin\bash.exe -e {0}'
     steps:
       - uses: actions/checkout@v4
         with:

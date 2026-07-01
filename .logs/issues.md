@@ -17,3 +17,7 @@
 ## ISSUE — 2026-07-01
 - First deploy-staging run failed: the self-hosted runner's checkout (_work/baridi-ma/baridi-ma, a separate clone from the dev folder) has no .env file - correctly never committed, but docker compose up needs it. Log also showed noisy-but-nonfatal fnm CommandNotFoundException from the user's global PowerShell profile being auto-loaded by the default GitHub Actions Windows shell.
 - Fix: (1) manually copied this host's working .env into the runner's checkout once (matches docs/devops-baridi-ma.md Sec 3 "env vars via .env files on the host"); (2) set clean:false on actions/checkout so that untracked .env survives future checkouts instead of being wiped by git clean; (3) switched job shell to bash to bypass the Windows PowerShell profile entirely; (4) added npm ci before npm run migrate since the runner's checkout also has no node_modules yet - would have failed at the migration step next had this not been caught proactively.
+
+## ISSUE — 2026-07-01
+- Second deploy-staging failure: shell:bash resolved to Windows' built-in system32\bash.exe (a WSL launcher stub with no WSL distro installed) instead of Git Bash, since System32 precedes Git's install dir in this host's PATH. Error: "execvpe(/bin/bash) failed: No such file or directory".
+- Fix: pin the job's default shell to the explicit Git Bash path (C:\Program Files\Git\bin\bash.exe) instead of relying on PATH resolution of the bare "bash" name.
