@@ -1,0 +1,115 @@
+services:
+  postgres:
+    image: timescale/timescaledb:2.17.2-pg16
+    environment:
+      POSTGRES_USER: baridi
+      POSTGRES_PASSWORD: baridi
+      POSTGRES_DB: baridi_ma
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U baridi"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./infra/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth/Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://baridi:baridi@postgres:5432/baridi_ma
+      PORT: 4001
+    ports:
+      - "4001:4001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  shipment-service:
+    build:
+      context: .
+      dockerfile: services/shipment/Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://baridi:baridi@postgres:5432/baridi_ma
+      PORT: 4002
+    ports:
+      - "4002:4002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  ingestion-service:
+    build:
+      context: .
+      dockerfile: services/ingestion/Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://baridi:baridi@postgres:5432/baridi_ma
+      MQTT_BROKER_URL: mqtt://mosquitto:1883
+      PORT: 4003
+    ports:
+      - "4003:4003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+
+  alerting-service:
+    build:
+      context: .
+      dockerfile: services/alerting/Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://baridi:baridi@postgres:5432/baridi_ma
+      PORT: 4004
+    ports:
+      - "4004:4004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  compliance-service:
+    build:
+      context: .
+      dockerfile: services/compliance/Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://baridi:baridi@postgres:5432/baridi_ma
+      PORT: 4005
+    ports:
+      - "4005:4005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    env_file: .env
+    environment:
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      AUTH_SERVICE_URL: http://auth-service:4001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - auth-service
+      - shipment-service
+      - alerting-service
+      - compliance-service
+
+volumes:
+  postgres_data:

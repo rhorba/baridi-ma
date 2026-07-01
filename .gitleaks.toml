@@ -1,0 +1,13 @@
+title = "baridi-ma gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+paths = [
+  '''node_modules''',
+  '''\.next''',
+  '''dist''',
+  '''\.git''',
+  '''\.logs''',
+]

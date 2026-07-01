@@ -1,0 +1,20 @@
+﻿# SESSIONS — Baridi.ma
+
+
+
+## SESSION_START — 2026-07-01
+- No prior sessions found. No docs/, no git repo, no code yet.
+- README.md describes: Cold-chain logistics tracker for Morocco. Stack: Next.js 15, TS, PostgreSQL 16 + TimescaleDB, MQTT, Docker, Tailwind v4, CMI payments. Roles: Shipper/Carrier/Receiver/Admin.
+- Entering Phase 1: UNDERSTAND.
+
+## SESSION_END — 2026-07-01
+- Session 1 complete: full new-project kickoff for Baridi.ma.
+- Git repo initialized, remote set to github.com/rhorba/baridi-ma, pushed to main.
+- All 10 foundation docs (PRD through Stories) drafted, user-approved, committed, pushed (0d9e2e2).
+- Architecture: microservices (Auth, Shipment, Ingestion, Alerting, Compliance/PDF) + Next.js BFF. CMI payments stubbed. .env.example written with placeholders.
+- Next session: start Sprint 1 (Story 1.1 monorepo/Docker Compose scaffold, 1.2 Auth Service, 1.3 BFF auth middleware) via EXECUTE phase.
+
+## SESSION_START — 2026-07-01
+- Resuming from session 1. Foundation docs approved and pushed (0d9e2e2).
+- Starting Sprint 1: Stories 1.1 (monorepo/Docker Compose scaffold), 1.2 (Auth Service), 1.3 (BFF auth middleware).
+- Entering Phase 1: UNDERSTAND (brief — scope already defined in docs/stories-baridi-ma.md).
