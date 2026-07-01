@@ -47,3 +47,9 @@
 ## SESSION_START — 2026-07-01
 - Resuming exactly where paused: Sprint 3 code complete, only v0.3 video recording + closeout remain.
 - Found all baridi-ma containers present but stopped (Exited (255), clean state, none orphaned mid-build). Proceeding with resume checklist: bring stack up, migrate, health-check, run E2E for video, ship recording, close Sprint 3.
+
+## SESSION_END — 2026-07-01
+- Sprint 3 (Epic 3: Sensor Ingestion & Alerting) fully closed. v0.3 video recorded (.recordings/v0.3-2026-07-01.webm, alerting-flow spec), Sprint 3 snapshot logged to .logs/metrics.md, committed and pushed (c3ca0af on origin/main).
+- Stack verified clean shutdown afterward (docker compose down, confirmed zero orphaned baridi-ma containers via docker ps -a).
+- Known open gap carried forward: no CI pipeline yet (GitHub Actions from docs/devops-baridi-ma.md unbuilt) - flagged in both Sprint 2 and Sprint 3 snapshots, rule 11 CI monitoring still not applicable. Should be prioritized early in Sprint 4.
+- Next session: start Sprint 4 (Epic 4 - Compliance Export: Story 4.1 Compliance Service PDF+hash generation, Story 4.2 export UI) per docs/stories-baridi-ma.md. Per orchestrator workflow, begin with UNDERSTAND/BRAINSTORM phases for Sprint 4 scope. Consider addressing the CI gap as part of or before Sprint 4 given it's now been flagged twice.
