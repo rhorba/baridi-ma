@@ -27,3 +27,10 @@
 
 ## SESSION_START — 2026-07-01
 - Continuing from Sprint 1 (pushed, 975cf4c). Starting Sprint 2: Epic 2 Shipment Management, Stories 2.1-2.3.
+
+## SESSION_END — 2026-07-01
+- Sprint 2 fully shipped: Stories 2.1-2.3 built, verified (117 tests, 100% coverage on logic-bearing code, clean security scans), and pushed to origin/main (d3281f4, 30a9bca).
+- Shipment Service now live: create/list/detail with ownership scoping, carrier assignment, status-transition state machine, audit logging. Auth Service gained an internal user-lookup endpoint. BFF gained shipment pages with role-conditional UI.
+- Full user journey now works end-to-end: register -> login -> create shipment -> assign carrier -> carrier transitions status -> all verified live in a real browser.
+- Known gap: no CI pipeline yet (GitHub Actions from devops-baridi-ma.md not built) - all verification this sprint was manual/local. Worth prioritizing early in Sprint 3 given rule 11's CI-monitoring requirement cannot apply without it.
+- Next session: start Sprint 3 (Epic 3 - Sensor Ingestion & Alerting: Stories 3.1 MQTT ingestion, 3.2 sensor simulator, 3.3 threshold alerting, 3.4 live tracking UI). Per orchestrator workflow, begin with UNDERSTAND/BRAINSTORM phases for Sprint 3 scope.

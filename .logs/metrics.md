@@ -29,3 +29,13 @@
 - Security scan: Semgrep found 3 blocking findings (XSS rule false-positive - Express-specific rule misfiring on Fastify's safe JSON reply.send(), verified not exploitable, frontend also auto-escapes via React) - suppressed with justified inline nosemgrep comments, rescanned clean (0 findings, 508 rules / 166 files). Gitleaks 0 leaks. Trivy 0 critical/high CVEs.
 - Live verification: all 6 services healthy, full shipment lifecycle (create->assign carrier->in_transit->delivered) verified via curl AND via Playwright browser automation, audit log confirmed via direct DB query.
 - Stories 2.1-2.3 (Epic 2: Shipment Management) fully complete.
+
+## SPRINT_SNAPSHOT — Sprint 2 — 2026-07-01
+- Stories completed: 2.1 (Shipment CRUD), 2.2 (carrier assignment + status transitions), 2.3 (list/detail UI + BFF wiring). All 3 of Sprint 2's planned stories shipped.
+- Tests: 115 unit/integration (30 auth-service, 51 shipment-service, 34 web) + 2 E2E (Playwright, video recorded) = 117 total, all passing.
+- Coverage: 100% stmt/func/line on all 3 workspaces with business logic (auth-service, shipment-service, web BFF), 94-100% branch.
+- Security: Semgrep 0 findings (1 false positive found+suppressed with justification), Gitleaks 0 leaks, Trivy 0 critical/high CVEs.
+- CI: still not set up (local Docker Compose + manual scans remain the verification method; GitHub Actions pipeline from devops-baridi-ma.md doc remains unbuilt - flagged as a gap to address, since rule 11 CI monitoring cannot apply until CI exists).
+- Bugs found and fixed during Sprint 2: missing AUTH_SERVICE_URL wiring for shipment-service in docker-compose (caused runtime fetch failures), leaked internal error messages to clients (added shared error handler to both backend services), a test mock-leak causing cascading failures, Semgrep Express-rule false positive on Fastify's safe reply.send().
+- Video: .recordings/v0.2-2026-07-01.webm (shipment management flow).
+- Pushed: commits d3281f4, 30a9bca to origin/main.
