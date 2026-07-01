@@ -16,26 +16,41 @@ jobs:
     if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
     runs-on: [self-hosted, baridi-ma]
     environment: staging
+    defaults:
+      run:
+        shell: bash
     steps:
+      # clean:false preserves the runner-local .env (never committed, seeded once by
+      # hand on this host per docs/devops-baridi-ma.md Sec 3) across checkouts.
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
+          clean: false
       - name: Rebuild and restart stack
         run: docker compose up -d --build
       - name: Run migrations
         env:
           DATABASE_URL: postgresql://baridi:baridi@localhost:5433/baridi_ma
-        run: npm run migrate
+        run: |
+          npm ci
+          npm run migrate
 
   deploy-prod:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: [self-hosted, baridi-ma]
     environment: production
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
+        with:
+          clean: false
       - name: Rebuild and restart stack
         run: docker compose up -d --build
       - name: Run migrations
         env:
           DATABASE_URL: postgresql://baridi:baridi@localhost:5433/baridi_ma
-        run: npm run migrate
+        run: |
+          npm ci
+          npm run migrate
