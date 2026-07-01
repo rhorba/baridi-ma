@@ -16,13 +16,15 @@ jobs:
     if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
     runs-on: [self-hosted, baridi-ma]
     environment: staging
-    defaults:
-      run:
-        # Explicit path: "bash" on this runner's PATH resolves to Windows' built-in
-        # WSL bash stub (no distro installed) before Git Bash, since System32
-        # precedes Git in system PATH order.
-        shell: 'C:\Program Files\Git\bin\bash.exe -e {0}'
     steps:
+      # Bare "bash" on this runner's PATH resolves to Windows' built-in WSL bash
+      # stub (no distro installed) ahead of Git Bash. Prepend Git's bin dir via
+      # GITHUB_PATH (the supported way to extend PATH for later steps) rather
+      # than a literal absolute path in `shell:`, which hits a runner bug on
+      # Windows ("Second path fragment must not be a drive or UNC name").
+      - name: Prefer Git Bash on PATH
+        shell: powershell
+        run: Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\bin'
       # clean:false preserves the runner-local .env (never committed, seeded once by
       # hand on this host per docs/devops-baridi-ma.md Sec 3) across checkouts.
       - uses: actions/checkout@v4
@@ -30,8 +32,10 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }}
           clean: false
       - name: Rebuild and restart stack
+        shell: bash
         run: docker compose up -d --build
       - name: Run migrations
+        shell: bash
         env:
           DATABASE_URL: postgresql://baridi:baridi@localhost:5433/baridi_ma
         run: |
@@ -42,19 +46,18 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: [self-hosted, baridi-ma]
     environment: production
-    defaults:
-      run:
-        # Explicit path: "bash" on this runner's PATH resolves to Windows' built-in
-        # WSL bash stub (no distro installed) before Git Bash, since System32
-        # precedes Git in system PATH order.
-        shell: 'C:\Program Files\Git\bin\bash.exe -e {0}'
     steps:
+      - name: Prefer Git Bash on PATH
+        shell: powershell
+        run: Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\Git\bin'
       - uses: actions/checkout@v4
         with:
           clean: false
       - name: Rebuild and restart stack
+        shell: bash
         run: docker compose up -d --build
       - name: Run migrations
+        shell: bash
         env:
           DATABASE_URL: postgresql://baridi:baridi@localhost:5433/baridi_ma
         run: |

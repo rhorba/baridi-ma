@@ -21,3 +21,7 @@
 ## ISSUE — 2026-07-01
 - Second deploy-staging failure: shell:bash resolved to Windows' built-in system32\bash.exe (a WSL launcher stub with no WSL distro installed) instead of Git Bash, since System32 precedes Git's install dir in this host's PATH. Error: "execvpe(/bin/bash) failed: No such file or directory".
 - Fix: pin the job's default shell to the explicit Git Bash path (C:\Program Files\Git\bin\bash.exe) instead of relying on PATH resolution of the bare "bash" name.
+
+## ISSUE — 2026-07-01
+- Third deploy-staging failure: a literal Windows path with spaces in `shell:` ("C:\Program Files\Git\bin\bash.exe -e {0}") hit a runner-internal bug: "Second path fragment must not be a drive or UNC name" - the Actions runner's path-combination logic can't handle an absolute custom-shell path containing spaces on this runner version.
+- Fix: switched to the officially supported PATH-extension mechanism ($GITHUB_PATH) - a "Prefer Git Bash on PATH" step (running under plain powershell, before bash is needed) prepends Git's bin dir for all later steps in the job, then those steps use plain `shell: bash` (bare name, no literal path).
