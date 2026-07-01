@@ -134,3 +134,10 @@
 
 ## ACTIVITY — 2026-07-01
 - CI: green on main (2c488a1). First fully-passing run of the new pipeline - security-scan, lint, test (80% coverage gate held on all workspaces on a clean GitHub-hosted runner too, not just locally), and all 6 Docker image builds all passed. Batch 1 (CI workflow) is complete and verified live, not just written.
+
+## ACTIVITY — 2026-07-01
+- Batch 2 (self-hosted runner + deploy workflow) in progress: registered this machine as a GitHub Actions self-hosted runner (name baridi-ma-local, labels self-hosted/baridi-ma/pilot-vps) via config.cmd. Created GitHub Environments "staging" (no gate, auto-deploy) and "production" (required-reviewer gate: rhorba) via gh api.
+- Per user's choice, NOT installed as a persistent Windows service yet - running as a foreground background process for this session only (run.cmd via Start-Process), confirmed online via GitHub API. Revisit persistent-service install in a future session if auto-deploy proves useful.
+- Added .github/workflows/deploy.yml: deploy-staging (auto, triggered on CI success on main via workflow_run, runs on the self-hosted runner: checkout + docker compose up -d --build + migrate) and deploy-prod (manual-approval gated via the production environment, triggered on v* tags).
+- Caught and fixed a real bug in the first draft before pushing: the deploy jobs had no actions/checkout step, so there would have been no git repo in the runner's workspace at all - custom git fetch/reset commands would have failed immediately.
+- Flagged to user (not blocking): the runner checks out into a separate _work clone: if the auto-deployed staging stack and this dev-folder's manually-run stack are both up at once, they'll collide on the same docker-compose container names and host ports since both folders share the name "baridi-ma".
