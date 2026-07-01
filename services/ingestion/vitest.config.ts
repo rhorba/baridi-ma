@@ -7,6 +7,7 @@ export default defineConfig({
       // Server bootstrap (plugin registration, listen(), starting the MQTT
       // subscriber) is infrastructure wiring, not business logic.
       exclude: [...coverageConfigDefaults.exclude, "src/main.ts"],
+      thresholds: { statements: 80, branches: 80, functions: 80, lines: 80 },
     },
   },
 });

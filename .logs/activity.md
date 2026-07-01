@@ -120,3 +120,14 @@
 - .recordings/v0.3-2026-07-01.webm
 - Scenario: shipper creates a shipment via UI -> captures device token from the one-time reveal banner -> a real breaching sensor reading is published over live MQTT -> page reloads -> live temperature chart (with threshold reference lines) and the resulting alert both appear in the browser, polling-driven.
 - Covers the new critical flow shipped in Sprint 3 (sensor ingestion + threshold alerting + live tracking UI, Epic 3). Recorded via e2e/tests/alerting-flow.spec.ts against the live docker-compose stack.
+
+## PLAN — 2026-07-01
+- Batch 1: CI workflow (coverage thresholds in vitest configs, .github/workflows/ci.yml with lint/test/security-scan/build jobs on GitHub-hosted runners, compliance test:coverage script).
+- Batch 2: Self-hosted runner registration + .github/workflows/deploy.yml (deploy-staging auto on push to main, deploy-prod manual-approval on tags), both on the local machine acting as the pilot-scale VPS.
+- Batch 3: Push, verify CI green, verify runner + deploy-staging fire live, log and ship, then move to Sprint 4.
+
+## ACTIVITY — 2026-07-01
+- Batch 1 (CI workflow) complete: .github/workflows/ci.yml added (lint, test+coverage, security-scan [Semgrep/Trivy/Gitleaks], build matrix over all 6 Docker images), runs on GitHub-hosted ubuntu-latest runners.
+- Added enforced 80% coverage thresholds (statements/branches/functions/lines) to all 6 logic-bearing vitest.config.ts files - turns the manual per-sprint coverage check into an automated CI gate. Verified locally first: full test:coverage run across all workspaces passes clean, exit code 0, no threshold failures.
+- compliance service (still a Sprint-1 health-check stub, no logic yet) given a minimal vitest.config.ts with passWithNoTests:true so its empty test suite doesn't break the CI test job; coverage gate deferred until Sprint 4 (Story 4.1) adds real logic.
+- Added root package.json test:coverage script (npm run test:coverage --workspaces --if-present).

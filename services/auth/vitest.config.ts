@@ -7,6 +7,7 @@ export default defineConfig({
       // Server bootstrap (plugin registration, listen()) is infrastructure wiring,
       // not business logic — same tier as web's excluded config/layout files.
       exclude: [...coverageConfigDefaults.exclude, "src/main.ts"],
+      thresholds: { statements: 80, branches: 80, functions: 80, lines: 80 },
     },
   },
 });

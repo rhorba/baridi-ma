@@ -22,6 +22,7 @@ export default defineConfig({
         "next.config.ts",
         "postcss.config.mjs",
       ],
+      thresholds: { statements: 80, branches: 80, functions: 80, lines: 80 },
     },
   },
 });

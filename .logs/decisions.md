@@ -30,3 +30,8 @@
 - Alerting Service fetches shipment thresholds via a new Shipment Service internal endpoint (GET /internal/shipments/:id, internal-token only, no JWT/ownership check since it is service-to-service) rather than direct cross-schema DB access, per architecture doc's stated design ("fetched from Shipment DB via internal API").
 - Alert dedup: skip creating a new alert if one already exists for the same shipment+reason within the last 5 minutes (basic debounce for burst readings, per Test Strategy adversarial checklist).
 - Email sending: nodemailer wired for real SMTP via env vars if provided, falls back to a no-op/logging transport when unset (no real SMTP credentials available for MVP) - same pattern as the CMI payment stub.
+
+## DECISION — 2026-07-01
+- CI pipeline scope: full 6-stage pipeline (lint, test w/ 80% coverage gate, security-scan, build, deploy-staging, deploy-prod) per docs/devops-baridi-ma.md, deployed to this local machine acting as the "VPS" instead of provisioning a cloud server.
+- Deploy mechanism: register this machine as a GitHub Actions self-hosted runner. deploy-staging runs automatically on every push to main (git pull + docker compose up -d --build + migrate). deploy-prod requires a GitHub Environment manual-approval gate, triggered on version tags, also runs on the same self-hosted runner (pilot scale = one box for both per docs/devops-baridi-ma.md §3).
+- Accepted risk (flagged to user before deciding): self-hosted runners execute workflow-defined code with the host machine's permissions. Acceptable here only because this is a private, solo-maintainer repo with no untrusted external PRs.
