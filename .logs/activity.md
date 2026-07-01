@@ -83,3 +83,8 @@
 - Batch 3 (Story 2.3) complete: BFF shipment proxy routes (GET/POST /api/shipments, GET/PATCH /api/shipments/[id]/*) with shared requireBearerToken helper (refactored /api/auth/me to use it too). Shipment list, new-shipment form, and detail pages with role-conditional assign-carrier and status-update UI. Added shared Shipment type to shared-types.
 - 34 web tests passing (100% stmt/func/line, 98.07% branch on logic-bearing files). Extended Playwright E2E suite with a full shipment flow: shipper creates shipment via UI -> sees it in list/detail -> assigns carrier via on-page form -> carrier logs in -> transitions status via UI buttons. Both E2E tests passing, run live in a real browser against the full stack (not curl-only).
 - middleware.ts extended to protect /shipments routes.
+
+## VIDEO_RECORDED — 2026-07-01
+- .recordings/v0.2-2026-07-01.webm
+- Scenario: shipper registers/logs in -> views empty shipment list -> creates a shipment via UI form -> sees it on detail page -> assigns a carrier via on-page form -> carrier logs in -> transitions status via UI buttons (created -> in_transit).
+- Covers the new critical flow shipped in Sprint 2 (shipment management, Epic 2). Recorded via e2e/tests/shipment-flow.spec.ts against the live docker-compose stack.
