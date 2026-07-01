@@ -53,3 +53,12 @@
 - Batch 3 (Story 1.3) complete: BFF wired to Auth Service. Login/register/dashboard pages (Tailwind v4 + UI-doc design tokens), API routes (register/login/refresh/logout/me) proxying to Auth Service with x-internal-token forwarding, BFF-side JWT verification on /api/auth/me (ADR-1), refresh-token httpOnly cookie, middleware.ts route protection.
 - Verified live end-to-end through the BFF (not just Auth Service directly): register, login sets httpOnly+SameSite=strict cookie, refresh works, logout clears cookie, admin self-registration blocked (400), /dashboard redirects to /login when logged out and vice versa.
 - Found and fixed a real bug during live verification: cookie Secure flag was driven by NODE_ENV, but next start always hardcodes NODE_ENV=production regardless of actual deployment env, so the cookie was marked Secure even in local HTTP dev. Only worked by accident because Chrome/curl special-case localhost as a secure context - would have broken on any other hostname. Fixed with an explicit COOKIE_SECURE env var (default true, set false only for local dev).
+
+## ACTIVITY — 2026-07-01
+- Fixed real bug found by E2E test: logout cleared session state but never navigated away from /dashboard (client-side state change, not a page load, so middleware.ts never re-ran to redirect). Dashboard logout button now calls router.push("/login") after logout().
+- .gitignore fix: .recordings/ was being ignored entirely, contradicting CLAUDE.md rule 9 which mandates committing version-completion videos. Removed that line; added e2e/output and test-results excludes instead (raw Playwright artifacts, not the curated recording).
+
+## VIDEO_RECORDED — 2026-07-01
+- .recordings/v0.1-2026-07-01.webm
+- Scenario: register (shipper role) -> login -> dashboard (welcome message + role shown) -> logout -> redirected to /login.
+- This is the only user-facing flow shipped in Sprint 1 (auth). Recorded via e2e/tests/auth-flow.spec.ts against the live docker-compose stack.

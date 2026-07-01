@@ -5,7 +5,9 @@ build/
 .env
 .env.local
 *.log
-.recordings/
 coverage/
 .turbo/
 bash.exe.stackdump
+e2e/output/
+e2e/test-results/
+e2e/playwright-report/
