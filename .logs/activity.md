@@ -62,3 +62,7 @@
 - .recordings/v0.1-2026-07-01.webm
 - Scenario: register (shipper role) -> login -> dashboard (welcome message + role shown) -> logout -> redirected to /login.
 - This is the only user-facing flow shipped in Sprint 1 (auth). Recorded via e2e/tests/auth-flow.spec.ts against the live docker-compose stack.
+
+## PUSH — 2026-07-01
+- Commit 40774df "feat: Sprint 1 foundation" pushed to origin/main.
+- Commit d9164df "fix: redirect to login after logout; add E2E recording for v0.1" pushed to origin/main.
