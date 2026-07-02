@@ -237,3 +237,6 @@
 - Root cause 2: Gitleaks' generic-api-key rule pattern-matches on `Key: "..."` regardless of context; same class of false positive as the 2 already allowlisted in Sprint 3 (.gitleaks.toml), but a new specific instance.
 - Fix: staged and committed package-lock.json; added inline `// gitleaks:allow` comments (same precision-over-breadth approach as Semgrep's nosemgrep comments) to the 2 flagged lines rather than a path-wide allowlist. Verified locally: `npm ci` now succeeds (lock file in sync).
 - Per rule 11: stopped all other work, diagnosed, fixed, re-pushing now.
+
+## CI_CHECK — 2026-07-02 (S3 migration, green after fix)
+- Push cd72630: CI fully GREEN — lint, test w/ coverage gate, security-scan (Gitleaks now passes with the inline allow comments), all 6 builds. S3/MinIO migration is now fully shipped.
