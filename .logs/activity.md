@@ -240,3 +240,10 @@
 
 ## CI_CHECK — 2026-07-02 (S3 migration, green after fix)
 - Push cd72630: CI fully GREEN — lint, test w/ coverage gate, security-scan (Gitleaks now passes with the inline allow comments), all 6 builds. S3/MinIO migration is now fully shipped.
+
+## FULL_SUITE_VIDEO — 2026-07-02
+- User requested a single comprehensive video walkthrough of all detailed test scenarios, not a per-feature clip.
+- Ran the full live E2E suite (all 6 specs, --workers=1, against a freshly-healthy Docker stack) end to end: auth flow, shipment creation/list/detail, live sensor tracking + real-MQTT-triggered alert, compliance PDF export (delivered -> export -> download -> idempotent re-download), admin list/deactivate (with real post-deactivation login rejection), admin shipment oversight (owner emails). All 6 passed on a single run.
+- Merged the 6 individual Playwright-recorded videos into one file via ffmpeg's concat demuxer (stream-copy, no re-encode — all 6 clips share identical codec/resolution/framerate: vp8, 800x450, 25fps, so this was lossless and instant), ordered narratively (auth -> shipment -> alerting -> compliance-export -> admin-deactivate -> admin-oversight) rather than alphabetically/by-run-order.
+- Saved to .recordings/full-suite-2026-07-02.webm (21.12s, 589KiB).
+- Stack torn down cleanly afterward, zero orphaned containers confirmed.
