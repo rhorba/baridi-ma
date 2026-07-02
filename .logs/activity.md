@@ -230,3 +230,10 @@
 - Live verification: full stack rebuilt with MinIO, migration applied live, all 6 services healthy, minio-init exited 0 (bucket created), full E2E suite (6 specs) passed including compliance-export-flow — and directly confirmed via `mc ls` that a real PDF object landed in the bucket (not just that the HTTP flow reported success). Stack torn down cleanly, zero orphaned containers.
 - Security: Semgrep (p/owasp-top-ten + p/secrets) — 0 findings.
 - Not pushed yet — Batch 2 (persistent deploy runner) is next.
+
+## CI_CHECK — 2026-07-02 (S3 migration push, red -> fixed)
+- Push 7dae800 went RED on 3 jobs: lint and test both failed at `npm ci` ("can only install packages when package.json and package-lock.json are in sync" — missing the entire @aws-sdk/client-s3 dependency tree), and security-scan failed at Gitleaks (2 false-positive generic-api-key matches on `Key: "shipment-1.pdf"` in the new S3 storage test — an S3 object key, not a secret).
+- Root cause 1: ran `npm install --workspace=@baridi-ma/compliance-service` locally (which did update the root package-lock.json on disk) but only staged services/compliance, db/migrations, docker-compose.yml, and .env.example when committing — never staged the modified package-lock.json.
+- Root cause 2: Gitleaks' generic-api-key rule pattern-matches on `Key: "..."` regardless of context; same class of false positive as the 2 already allowlisted in Sprint 3 (.gitleaks.toml), but a new specific instance.
+- Fix: staged and committed package-lock.json; added inline `// gitleaks:allow` comments (same precision-over-breadth approach as Semgrep's nosemgrep comments) to the 2 flagged lines rather than a path-wide allowlist. Verified locally: `npm ci` now succeeds (lock file in sync).
+- Per rule 11: stopped all other work, diagnosed, fixed, re-pushing now.

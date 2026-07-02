@@ -34,7 +34,7 @@ describe("saveExportFile", () => {
     const command = sendSpy.mock.calls[0][0] as { input: Record<string, unknown> };
     expect(command.input).toMatchObject({
       Bucket: "test-bucket",
-      Key: "shipment-1.pdf",
+      Key: "shipment-1.pdf", // gitleaks:allow (S3 object key, not a secret — false-positive generic-api-key match)
       ContentType: "application/pdf",
     });
   });
@@ -53,6 +53,6 @@ describe("readExportFile", () => {
 
     expect(Array.from(buf)).toEqual([1, 2, 3]);
     const command = sendSpy.mock.calls[0][0] as { input: Record<string, unknown> };
-    expect(command.input).toMatchObject({ Bucket: "test-bucket", Key: "shipment-1.pdf" });
+    expect(command.input).toMatchObject({ Bucket: "test-bucket", Key: "shipment-1.pdf" }); // gitleaks:allow (S3 object key, not a secret)
   });
 });
