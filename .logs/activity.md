@@ -207,3 +207,13 @@
 - Tests: 5 new BFF route tests + 2 new middleware tests. Full apps/web suite: 48/48 passing, 100% stmt/line coverage. Full 6-workspace re-run after the shared-types change (AdminShipment/AdminUserSummary added): all green, no regressions.
 - Build/lint clean, Semgrep 0 findings.
 - Not pushed yet — Batch 3 (E2E, v0.5 video, push, CI-green, final Sprint 5/project close-out) is next.
+
+## BATCH_3_VERIFY — Sprint 5 — 2026-07-02
+- Sprint 5 Batch 3 (E2E + video + close-out) complete.
+- Stack rebuilt clean (fresh network/containers, persistent postgres_data/compliance_data volumes reused correctly — the Sprint 4 volume-ownership fix held up). All 6 services healthy, migrations already-applied (idempotent).
+- New E2E spec e2e/tests/admin-flow.spec.ts, 2 tests: (1) admin lists users, deactivates one (self-deactivation button correctly absent on the admin's own row), and the deactivated user is confirmed unable to log in afterward — a real HTTP 401, not just a UI-state check; (2) admin sees shipper/receiver emails (and "—" for no carrier) on the shipments list, verifying Story 5.2 end-to-end. Added `pg` as an e2e devDependency to seed an admin account by promoting a normally-registered user via direct SQL (admin has no self-service signup path, matching a real deployment's seeding story).
+- Full E2E suite (6 specs: auth, shipment, alerting, compliance-export, 2x admin-flow) passed live on first run — no bugs found this batch (Batches 1-2's proactive fixes, e.g. avoiding the bodyless-PATCH Content-Type issue up front, paid off).
+- v0.5 video recorded and saved to .recordings/v0.5-2026-07-02.webm (admin list/deactivate flow).
+- Stack torn down cleanly (docker compose down), zero orphaned containers confirmed.
+- Security: Semgrep (p/owasp-top-ten + p/secrets) on new E2E files — 0 findings.
+- Sprint 5 (Epic 5: Admin Panel) is now fully complete: Stories 5.1 (admin list/deactivate users + refresh-gap fix) and 5.2 (admin shipment oversight with owner emails) both done, tested, verified live, and video-recorded. This was the last sprint per docs/stories-baridi-ma.md's Sprint Allocation table.
