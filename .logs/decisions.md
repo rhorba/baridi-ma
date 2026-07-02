@@ -40,3 +40,5 @@
 - Sprint 4 re-export behavior: idempotent - if compliance.exports already has a row for a shipment, return the existing export instead of regenerating (matches the UNIQUE constraint literally; shipments are only exportable once delivered/terminal, so readings can't change post-export anyway).
 - Architecture: Compliance Service gets its own internal-auth pattern (new GET /internal/shipments/:id on Shipment Service, x-internal-token guarded) rather than direct cross-schema SQL, consistent with every other service-to-service call in this codebase. Compliance Service does its own ownership check (Receiver must own the shipment as receiver, or Admin bypass) using the real end-user JWT, mirroring findShipmentForViewer's defense-in-depth pattern.
 - POST /compliance/:shipmentId/export both generates (or reuses) and returns the PDF synchronously in one call (ADR-3), no separate generate+download round trip.
+## PLAN_APPROVED — 2026-07-02
+- User confirmed Batch 1 (Compliance Service backend, Story 4.1) go-ahead. Proceeding to EXECUTE phase.

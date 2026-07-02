@@ -147,3 +147,15 @@
 - Batch 3 (verify) complete: live-verified the auto-deployed stack, not just the green checkmark - all 8 containers up, Postgres healthy, all 6 services responding 200 on their health/root endpoints. Full pipeline proven live: push to main -> CI green -> deploy-staging fires automatically on the self-hosted runner -> real working stack.
 - Tore down the auto-deployed staging stack afterward (docker compose down in the runner's checkout) to free the shared host ports for regular dev-folder work, per the port-collision risk flagged earlier. Confirmed no orphaned containers.
 - CI/CD gap (flagged as an open item in Sprint 2 and Sprint 3 snapshots) is now fully closed: lint/test/security-scan/build run on GitHub-hosted runners on every push; deploy-staging auto-deploys to this pilot-scale host on every CI-green push to main; deploy-prod is manual-approval-gated on version tags. Self-hosted runner currently running as a foreground process for this session only (not a persistent Windows service, per user's choice) - revisit persistent install in a future session if continuous auto-deploy proves valuable.
+
+## BATCH_1_VERIFY — 2026-07-02
+- Sprint 4 Batch 1 (Compliance Service backend, Story 4.1) implemented and verified.
+- Shipment Service: added internal GET /internal/shipments/:id (internal-token only, no JWT) for Compliance Service to resolve ownership/status/device. 4 new tests, all passing (47/47 shipment suite total).
+- Compliance Service built out from stub: db.ts, jwt-auth.ts, error-handler.ts, internal-auth.ts, schemas.ts, shipment-client.ts, ingestion-client.ts, hash.ts (SHA-256 of canonicalized reading set), pdf.ts (pdf-lib certificate), storage.ts (filesystem-backed, COMPLIANCE_STORAGE_DIR env var), routes.ts (POST /compliance/:shipmentId/export).
+- Export endpoint: JWT + internal-token dual auth (ADR-1/Security baseline §7), role check (receiver/admin only), IDOR-safe 404 for non-owning receivers, 400 if not yet delivered, idempotent via unique constraint on compliance.exports.shipment_id (200 on replay, 201 on first generation, race-safe via unique-violation catch-and-refetch).
+- docker-compose.yml: compliance-service now gets SHIPMENT_SERVICE_URL, INGESTION_SERVICE_URL, COMPLIANCE_STORAGE_DIR env vars + a new compliance_data named volume for PDF persistence. .env.example updated with COMPLIANCE_STORAGE_DIR.
+- Tests: 27 compliance-service tests (7 files) + 4 new shipment-service tests, all passing.
+- Coverage: compliance-service 94.25% stmts/94.25% lines/89.47% branch/100% funcs (gate 80%, enforced via vitest.config.ts thresholds). shipment-service 98.93%. Both above rule-6 gate.
+- Lint: clean (apps/web ESLint, only workspace with a lint script). Build: both services compile clean via tsc.
+- Security: Semgrep (p/owasp-top-ten + p/secrets) on all new/changed files — 0 findings. Gitleaks/Trivy not run locally (not installed); will run in CI per rule 11 on push.
+- NOT pushed yet — this is Batch 1 of 3 for Sprint 4 (Batch 2: BFF proxy + export UI button; Batch 3: E2E, v0.4 video, final push). Per rule 7, push happens at sprint end, not per-batch.

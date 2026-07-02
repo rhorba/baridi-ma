@@ -62,3 +62,8 @@
 - Bugs found and fixed during Sprint 3: missing SHIPMENT_SERVICE_URL wiring for ingestion-service in docker-compose, a `timeout | docker compose run` termination-propagation gap that left a simulator container orphaned for 14 minutes (serendipitously stress-tested and confirmed debounce logic), a device-token UX gap (token discarded on redirect, fixed with one-time reveal banner), a circular Docker Compose dependency cycle, E2E flakiness from parallel workers against a single-instance stack (fixed via workers:1), simulator Dockerfile running as root.
 - Video: .recordings/v0.3-2026-07-01.webm (sensor ingestion + live chart + alerting flow).
 - Pushed: commit 647ed40 to origin/main (code); video pushed separately this session.
+
+## Sprint 4 — Batch 1 (Compliance Service backend) — 2026-07-02
+- compliance-service: 94.25% stmts, 89.47% branch, 100% funcs, 94.25% lines (27 tests / 7 files)
+- shipment-service (incremental, new internal endpoint): 98.93% stmts, 89.91% branch, 100% funcs, 98.93% lines (69 tests / 6 files, whole suite)
+- Gate: 80% combined — PASSED for both services.

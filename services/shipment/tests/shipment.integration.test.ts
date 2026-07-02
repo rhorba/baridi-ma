@@ -639,6 +639,71 @@ describe("GET /internal/devices/validate", () => {
   });
 });
 
+describe("GET /internal/shipments/:id", () => {
+  async function createShipment() {
+    vi.mocked(lookupUserByEmail).mockResolvedValueOnce({
+      id: RECEIVER_ID,
+      email: "receiver@example.com",
+      name: "Receiver",
+      role: "receiver",
+    });
+    const token = app.jwt.sign({ sub: SHIPPER_ID, role: "shipper", type: "access" });
+    const res = await app.inject({
+      method: "POST",
+      url: "/shipments",
+      headers: authHeaders(token),
+      payload: {
+        productType: "Dairy",
+        origin: "Casablanca",
+        destination: "Rotterdam",
+        receiverEmail: "receiver@example.com",
+        tempMinC: 2,
+        tempMaxC: 8,
+      },
+    });
+    return res.json();
+  }
+
+  it("rejects requests without the internal-service token", async () => {
+    const shipment = await createShipment();
+    const res = await app.inject({ method: "GET", url: `/internal/shipments/${shipment.id}` });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("returns full shipment details for a valid internal token (no JWT required)", async () => {
+    const shipment = await createShipment();
+    const res = await app.inject({
+      method: "GET",
+      url: `/internal/shipments/${shipment.id}`,
+      headers: { "x-internal-token": INTERNAL_TOKEN },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.id).toBe(shipment.id);
+    expect(body.receiverId).toBe(RECEIVER_ID);
+    expect(body.assignedDeviceId).toBe(shipment.assignedDeviceId);
+    expect(body.status).toBe("created");
+  });
+
+  it("returns 404 for a well-formed but non-existent id", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/internal/shipments/00000000-0000-0000-0000-000000000000",
+      headers: { "x-internal-token": INTERNAL_TOKEN },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("returns 400 for a malformed id", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/internal/shipments/not-a-uuid",
+      headers: { "x-internal-token": INTERNAL_TOKEN },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+});
+
 describe("GET /shipments/:id/readings and /shipments/:id/alerts", () => {
   beforeEach(() => {
     vi.mocked(fetchDeviceReadings).mockClear();

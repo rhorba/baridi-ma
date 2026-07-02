@@ -317,4 +317,21 @@ export async function shipmentRoutes(app: FastifyInstance) {
       humidityMaxPct: row.humidity_max_pct === null ? null : Number(row.humidity_max_pct),
     });
   });
+
+  // Internal-only (no JWT) — Compliance Service resolves shipment ownership/status/
+  // device before generating an export. The internal-token hook above still applies.
+  app.get("/internal/shipments/:id", async (request, reply) => {
+    const parsedParams = shipmentIdSchema.safeParse(request.params);
+    if (!parsedParams.success) {
+      return reply.code(400).send({ error: parsedParams.error.flatten() });
+    }
+    const result = await app.pg.query<ShipmentRow>("SELECT * FROM shipment.shipments WHERE id = $1", [
+      parsedParams.data.id,
+    ]);
+    const shipment = result.rows[0];
+    if (!shipment) {
+      return reply.code(404).send({ error: "Shipment not found" });
+    }
+    return reply.send(toApiShipment(shipment)); // nosemgrep (see rationale above)
+  });
 }

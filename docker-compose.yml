@@ -101,11 +101,22 @@ services:
     environment:
       DATABASE_URL: postgresql://baridi:baridi@postgres:5432/baridi_ma
       PORT: 4005
+      SHIPMENT_SERVICE_URL: http://shipment-service:4002
+      INGESTION_SERVICE_URL: http://ingestion-service:4003
+      COMPLIANCE_STORAGE_DIR: /data/compliance
     ports:
       - "4005:4005"
+    volumes:
+      - compliance_data:/data/compliance
     depends_on:
       postgres:
         condition: service_healthy
+      shipment-service:
+        condition: service_started
+    # Not depends_on: ingestion-service — export tolerates it not being up yet
+    # (fetchDeviceReadings returns [] on a failed fetch, same as shipment-service's
+    # telemetry-client.ts pattern); a shipment can't reach "delivered" without
+    # ingestion having been up at some point anyway.
 
   web:
     build:
@@ -139,3 +150,4 @@ services:
 
 volumes:
   postgres_data:
+  compliance_data:
