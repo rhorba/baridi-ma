@@ -8,6 +8,7 @@ import fastifyJwt from "@fastify/jwt";
 import { dbPlugin } from "../src/db.js";
 import { authRoutes } from "../src/routes.js";
 import { internalRoutes } from "../src/internal-routes.js";
+import { adminRoutes } from "../src/admin-routes.js";
 
 let container: StartedTestContainer;
 let migrationPool: Pool;
@@ -38,6 +39,7 @@ beforeAll(async () => {
   await app.register(dbPlugin);
   await app.register(authRoutes);
   await app.register(internalRoutes);
+  await app.register(adminRoutes);
   await app.ready();
 }, 60_000);
 
@@ -247,5 +249,176 @@ describe("GET /internal/users/lookup", () => {
       headers: { "x-internal-token": "test-internal-token" },
     });
     expect(res.statusCode).toBe(400);
+  });
+});
+
+describe("GET /internal/users/by-ids", () => {
+  it("rejects requests without a valid internal-service token", async () => {
+    const res = await app.inject({ method: "GET", url: "/internal/users/by-ids?ids=x" });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("returns 400 when ids is missing", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/internal/users/by-ids",
+      headers: { "x-internal-token": "test-internal-token" },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("resolves multiple ids in one call", async () => {
+    const registerRes = await app.inject({
+      method: "POST",
+      url: "/auth/register",
+      payload: { email: "byids@example.com", password: "correcthorsebattery", name: "By Ids", role: "carrier" },
+    });
+    const userId = registerRes.json().id;
+
+    const res = await app.inject({
+      method: "GET",
+      url: `/internal/users/by-ids?ids=${userId},00000000-0000-0000-0000-000000000000`,
+      headers: { "x-internal-token": "test-internal-token" },
+    });
+    expect(res.statusCode).toBe(200);
+    const users = res.json();
+    expect(users).toHaveLength(1);
+    expect(users[0]).toEqual({ id: userId, email: "byids@example.com", name: "By Ids", role: "carrier" });
+  });
+
+  it("returns an empty array when no ids match", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/internal/users/by-ids?ids=00000000-0000-0000-0000-000000000000",
+      headers: { "x-internal-token": "test-internal-token" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual([]);
+  });
+});
+
+describe("admin routes (FR-6)", () => {
+  let adminId: string;
+  let adminAccessToken: string;
+  let targetUserId: string;
+
+  beforeAll(async () => {
+    // Public registration excludes "admin" by design — seed one directly, the
+    // way a real deployment would (no self-service admin signup).
+    const adminResult = await migrationPool.query<{ id: string }>(
+      "INSERT INTO auth.users (email, password_hash, name, role) VALUES ($1, 'x', 'Admin', 'admin') RETURNING id",
+      ["admin@example.com"],
+    );
+    adminId = adminResult.rows[0].id;
+    adminAccessToken = app.jwt.sign({ sub: adminId, role: "admin", type: "access" });
+
+    const targetRes = await app.inject({
+      method: "POST",
+      url: "/auth/register",
+      payload: { email: "target@example.com", password: "correcthorsebattery", name: "Target", role: "receiver" },
+    });
+    targetUserId = targetRes.json().id;
+  });
+
+  describe("GET /auth/admin/users", () => {
+    it("rejects requests without a token", async () => {
+      const res = await app.inject({ method: "GET", url: "/auth/admin/users" });
+      expect(res.statusCode).toBe(401);
+    });
+
+    it("rejects a non-admin token", async () => {
+      const token = app.jwt.sign({ sub: targetUserId, role: "receiver", type: "access" });
+      const res = await app.inject({ method: "GET", url: "/auth/admin/users", headers: { authorization: `Bearer ${token}` } });
+      expect(res.statusCode).toBe(403);
+    });
+
+    it("lists all users for an admin", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: "/auth/admin/users",
+        headers: { authorization: `Bearer ${adminAccessToken}` },
+      });
+      expect(res.statusCode).toBe(200);
+      const users = res.json();
+      expect(users.some((u: { id: string }) => u.id === targetUserId)).toBe(true);
+      const target = users.find((u: { id: string }) => u.id === targetUserId);
+      expect(target.isActive).toBe(true);
+      expect(target.email).toBe("target@example.com");
+    });
+  });
+
+  describe("PATCH /auth/admin/users/:id/deactivate", () => {
+    it("rejects requests without a token", async () => {
+      const res = await app.inject({ method: "PATCH", url: `/auth/admin/users/${targetUserId}/deactivate` });
+      expect(res.statusCode).toBe(401);
+    });
+
+    it("rejects a non-admin token", async () => {
+      const token = app.jwt.sign({ sub: targetUserId, role: "receiver", type: "access" });
+      const res = await app.inject({
+        method: "PATCH",
+        url: `/auth/admin/users/${targetUserId}/deactivate`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(res.statusCode).toBe(403);
+    });
+
+    it("rejects a malformed user id", async () => {
+      const res = await app.inject({
+        method: "PATCH",
+        url: "/auth/admin/users/not-a-uuid/deactivate",
+        headers: { authorization: `Bearer ${adminAccessToken}` },
+      });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it("rejects an admin deactivating their own account", async () => {
+      const res = await app.inject({
+        method: "PATCH",
+        url: `/auth/admin/users/${adminId}/deactivate`,
+        headers: { authorization: `Bearer ${adminAccessToken}` },
+      });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it("returns 404 for a well-formed but non-existent user id", async () => {
+      const res = await app.inject({
+        method: "PATCH",
+        url: "/auth/admin/users/00000000-0000-0000-0000-000000000000/deactivate",
+        headers: { authorization: `Bearer ${adminAccessToken}` },
+      });
+      expect(res.statusCode).toBe(404);
+    });
+
+    it("deactivates a user, who can then no longer log in or refresh", async () => {
+      const loginRes = await app.inject({
+        method: "POST",
+        url: "/auth/login",
+        payload: { email: "target@example.com", password: "correcthorsebattery" },
+      });
+      expect(loginRes.statusCode).toBe(200);
+      const { refreshToken } = loginRes.json();
+
+      const deactivateRes = await app.inject({
+        method: "PATCH",
+        url: `/auth/admin/users/${targetUserId}/deactivate`,
+        headers: { authorization: `Bearer ${adminAccessToken}` },
+      });
+      expect(deactivateRes.statusCode).toBe(200);
+      expect(deactivateRes.json().isActive).toBe(false);
+
+      const loginAfterRes = await app.inject({
+        method: "POST",
+        url: "/auth/login",
+        payload: { email: "target@example.com", password: "correcthorsebattery" },
+      });
+      expect(loginAfterRes.statusCode).toBe(401);
+
+      // The refresh token was issued before deactivation and is still
+      // cryptographically valid — this is exactly the gap the is_active
+      // check in /auth/refresh closes.
+      const refreshRes = await app.inject({ method: "POST", url: "/auth/refresh", payload: { refreshToken } });
+      expect(refreshRes.statusCode).toBe(401);
+    });
   });
 });

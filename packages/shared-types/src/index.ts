@@ -9,6 +9,15 @@ export interface AuthUser {
   role: Role;
 }
 
+export interface AdminUserSummary {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export interface JwtClaims {
   sub: string; // user id
   role: Role;
@@ -33,6 +42,14 @@ export interface Shipment {
   status: ShipmentStatus;
   createdAt: string;
   updatedAt: string;
+}
+
+// GET /shipments only attaches these for role=admin (Story 5.2) — every other
+// role already knows "their" shipments by context.
+export interface AdminShipment extends Shipment {
+  shipperEmail: string | null;
+  carrierEmail: string | null;
+  receiverEmail: string | null;
 }
 
 export interface SensorReading {

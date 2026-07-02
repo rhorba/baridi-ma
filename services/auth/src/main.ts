@@ -3,6 +3,7 @@ import fastifyJwt from "@fastify/jwt";
 import { dbPlugin } from "./db.js";
 import { authRoutes } from "./routes.js";
 import { internalRoutes } from "./internal-routes.js";
+import { adminRoutes } from "./admin-routes.js";
 import { registerErrorHandler } from "./error-handler.js";
 
 const PORT = Number(process.env.PORT ?? 4001);
@@ -20,6 +21,7 @@ async function start() {
   await app.register(dbPlugin);
   await app.register(authRoutes);
   await app.register(internalRoutes);
+  await app.register(adminRoutes);
 
   app.get("/health", async () => ({ status: "ok", service: "auth" }));
 

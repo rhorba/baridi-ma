@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { requireAuth, type AccessClaims } from "./jwt-auth.js";
 import { requireInternalToken } from "./internal-auth.js";
-import { lookupUserByEmail } from "./internal-client.js";
+import { lookupUserByEmail, lookupUsersByIds } from "./internal-client.js";
 import { fetchDeviceReadings, fetchShipmentAlerts } from "./telemetry-client.js";
 import {
   createShipmentSchema,
@@ -142,7 +142,27 @@ export async function shipmentRoutes(app: FastifyInstance) {
         [claims.sub],
       );
     }
-    return reply.send(result.rows.map(toApiShipment));
+
+    if (claims.role !== "admin") {
+      return reply.send(result.rows.map(toApiShipment));
+    }
+
+    // Story 5.2 (admin shipment oversight): every other role already knows
+    // "their" shipments by context — only admin needs owner identities
+    // surfaced, since they see everyone's.
+    const ownerIds = [
+      ...new Set(result.rows.flatMap((r) => [r.shipper_id, r.carrier_id, r.receiver_id].filter((id): id is string => !!id))),
+    ];
+    const owners = await lookupUsersByIds(ownerIds);
+    const emailById = new Map(owners.map((o) => [o.id, o.email]));
+    return reply.send(
+      result.rows.map((row) => ({
+        ...toApiShipment(row),
+        shipperEmail: emailById.get(row.shipper_id) ?? null,
+        carrierEmail: row.carrier_id ? (emailById.get(row.carrier_id) ?? null) : null,
+        receiverEmail: emailById.get(row.receiver_id) ?? null,
+      })),
+    );
   });
 
   app.get("/shipments/:id", { preHandler: requireAuth }, async (request, reply) => {

@@ -190,3 +190,12 @@
 ## CI_CHECK — 2026-07-02 (green)
 - Re-push d82c618 (the fetch-depth fix): CI fully GREEN — lint, test (80%+ coverage gate enforced), security-scan (Semgrep/Trivy/Gitleaks all clean), and all 6 build-matrix images (web, auth, shipment, ingestion, alerting, compliance) all passed. Sprint 4 is shipped and CI-verified per rule 11.
 - Deploy workflow: queued, not yet run — the self-hosted runner "baridi-ma-local" is offline (it runs as a foreground process only, not a persistent service, per prior session's explicit note; it stops when the machine sleeps/reboots or the process is killed). This is a known, previously-flagged limitation, not a new issue. deploy-staging will pick up once the runner is manually restarted; CI itself (lint/test/security/build, which is what rule 11 gates) is unaffected since it runs on GitHub-hosted runners.
+
+## BATCH_1_VERIFY — Sprint 5 — 2026-07-02
+- Sprint 5 Batch 1 (backend: Story 5.1 admin user list/deactivate + Story 5.2 owner-email enrichment) implemented and verified.
+- Auth Service: new services/auth/src/admin-routes.ts (GET /auth/admin/users, PATCH /auth/admin/users/:id/deactivate — both admin-only via inline jwtVerify+role check, self-deactivation blocked). Fixed a real security gap: /auth/refresh now checks is_active before minting a new access token (previously a deactivated user's still-valid 7-day refresh token kept working). New GET /internal/users/by-ids batch lookup endpoint for cross-service display resolution.
+- Shipment Service: GET /shipments now attaches shipperEmail/carrierEmail/receiverEmail (via the new batch lookup, one round trip) only in admin responses — every other role already has ownership context.
+- Shared types: added AdminUserSummary and AdminShipment (extends Shipment) to packages/shared-types.
+- Tests: auth-service 43 tests (31 in the main integration file, up from 27; 12 new: 4 by-ids, 8 admin routes), shipment-service 73 tests (up from 69; 5 new: 3 internal-client unit, 1 owner-email integration, plus the earlier count). Coverage: auth-service 97.95%, shipment-service 98.99% — both clear the 80% gate.
+- Security: Semgrep found the known Fastify reply.send() XSS false-positive on the new deactivate endpoint (same pattern flagged in Sprint 2) — suppressed with the established nosemgrep + rationale comment, rescanned clean (0 findings).
+- Not pushed yet — Batch 2 (BFF proxy routes + admin UI) is next.

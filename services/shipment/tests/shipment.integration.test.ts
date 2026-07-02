@@ -6,9 +6,9 @@ import path from "node:path";
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyJwt from "@fastify/jwt";
 
-vi.mock("../src/internal-client.js", () => ({ lookupUserByEmail: vi.fn() }));
+vi.mock("../src/internal-client.js", () => ({ lookupUserByEmail: vi.fn(), lookupUsersByIds: vi.fn() }));
 vi.mock("../src/telemetry-client.js", () => ({ fetchDeviceReadings: vi.fn(), fetchShipmentAlerts: vi.fn() }));
-import { lookupUserByEmail } from "../src/internal-client.js";
+import { lookupUserByEmail, lookupUsersByIds } from "../src/internal-client.js";
 import { fetchDeviceReadings, fetchShipmentAlerts } from "../src/telemetry-client.js";
 import { dbPlugin } from "../src/db.js";
 import { shipmentRoutes } from "../src/routes.js";
@@ -54,6 +54,11 @@ beforeAll(async () => {
   await app.register(dbPlugin);
   await app.register(shipmentRoutes);
   await app.ready();
+
+  // Safe default so every existing admin-path test doesn't need to know
+  // about owner-email resolution; tests exercising it override with
+  // mockResolvedValueOnce.
+  vi.mocked(lookupUsersByIds).mockResolvedValue([]);
 }, 60_000);
 
 afterAll(async () => {
@@ -258,6 +263,25 @@ describe("GET /shipments and /shipments/:id (ownership scoping)", () => {
     const res = await app.inject({ method: "GET", url: "/shipments", headers: authHeaders(token) });
     expect(res.statusCode).toBe(200);
     expect(res.json().some((s: { id: string }) => s.id === shipmentId)).toBe(true);
+  });
+
+  it("attaches shipper/receiver owner emails for an admin (Story 5.2), but not for a non-admin", async () => {
+    vi.mocked(lookupUsersByIds).mockResolvedValueOnce([
+      { id: SHIPPER_ID, email: "shipper@example.com", name: "Shipper", role: "shipper" },
+      { id: RECEIVER_ID, email: "receiver@example.com", name: "Receiver", role: "receiver" },
+    ]);
+    const adminToken = app.jwt.sign({ sub: ADMIN_ID, role: "admin", type: "access" });
+    const adminRes = await app.inject({ method: "GET", url: "/shipments", headers: authHeaders(adminToken) });
+    expect(adminRes.statusCode).toBe(200);
+    const adminShipment = adminRes.json().find((s: { id: string }) => s.id === shipmentId);
+    expect(adminShipment.shipperEmail).toBe("shipper@example.com");
+    expect(adminShipment.receiverEmail).toBe("receiver@example.com");
+    expect(adminShipment.carrierEmail).toBeNull();
+
+    const shipperToken = app.jwt.sign({ sub: SHIPPER_ID, role: "shipper", type: "access" });
+    const shipperRes = await app.inject({ method: "GET", url: "/shipments", headers: authHeaders(shipperToken) });
+    const shipperOwnShipment = shipperRes.json().find((s: { id: string }) => s.id === shipmentId);
+    expect(shipperOwnShipment.shipperEmail).toBeUndefined();
   });
 });
 

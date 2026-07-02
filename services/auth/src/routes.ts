@@ -78,6 +78,15 @@ export async function authRoutes(app: FastifyInstance) {
       if (decoded.type !== "refresh") {
         return reply.code(401).send({ error: "Invalid token type" });
       }
+      // Deactivation must take effect immediately, not just at next login — a
+      // still-valid refresh token (7-day TTL) would otherwise keep minting
+      // fresh access tokens for a deactivated user.
+      const result = await app.pg.query<Pick<UserRow, "is_active">>("SELECT is_active FROM auth.users WHERE id = $1", [
+        decoded.sub,
+      ]);
+      if (!result.rows[0]?.is_active) {
+        return reply.code(401).send({ error: "Unauthorized" });
+      }
       const accessToken = app.jwt.sign({ sub: decoded.sub, role: decoded.role, type: "access" }, { expiresIn: "15m" });
       return reply.send({ accessToken });
     } catch {

@@ -35,3 +35,36 @@ describe("lookupUserByEmail", () => {
     expect(result).toBeNull();
   });
 });
+
+describe("lookupUsersByIds", () => {
+  it("returns an empty array without calling fetch when given no ids", async () => {
+    const { lookupUsersByIds } = await import("../src/internal-client.js");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    expect(await lookupUsersByIds([])).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("calls the Auth Service batch endpoint with a comma-joined id list and the internal token", async () => {
+    const { lookupUsersByIds } = await import("../src/internal-client.js");
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([{ id: "u1", email: "a@b.com", name: "A", role: "receiver" }]), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await lookupUsersByIds(["u1", "u2"]);
+
+    expect(result).toEqual([{ id: "u1", email: "a@b.com", name: "A", role: "receiver" }]);
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe("http://auth-service-test:4001/internal/users/by-ids?ids=u1,u2");
+    expect(options.headers["x-internal-token"]).toBe("test-internal-token");
+  });
+
+  it("returns an empty array when the Auth Service responds with a non-ok status", async () => {
+    const { lookupUsersByIds } = await import("../src/internal-client.js");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 500 })));
+
+    expect(await lookupUsersByIds(["u1"])).toEqual([]);
+  });
+});
