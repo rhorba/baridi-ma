@@ -74,3 +74,16 @@
 - Coverage: compliance-service 94.25%, shipment-service 98.93%, apps/web 100% stmts — all clear the 80% gate (rule 6).
 - 3 real bugs found only once the stack ran live (not caught by unit/integration tests — all infra/runtime-environment classes of bug): missing root .dockerignore breaking multi-service docker builds; Fastify rejecting Content-Type:application/json on a bodyless POST; Docker named-volume root-ownership blocking non-root PDF writes. All 3 fixed and re-verified live before push.
 - v0.4 video: .recordings/v0.4-2026-07-02.webm.
+
+## Sprint 5 (Epic 5: Admin Panel) — SNAPSHOT — 2026-07-02
+- Stories complete: 5.1 (admin list/deactivate users + refresh is_active fix), 5.2 (admin shipment oversight with owner emails). Sprint 5 closed — this was the last sprint per docs/stories-baridi-ma.md's Sprint Allocation table.
+- Coverage: auth-service 97.95%, shipment-service 98.99%, apps/web 100% stmts — all clear the 80% gate.
+- No bugs found during live E2E this sprint (unlike Sprint 4) — Batches 1-2's proactive fixes (e.g. avoiding the bodyless-PATCH Content-Type issue up front instead of discovering it live) worked as intended.
+- v0.5 video: .recordings/v0.5-2026-07-02.webm.
+
+## PROJECT MVP COMPLETE — 2026-07-02
+- All 5 sprints shipped: Epic 1 (Foundation & Auth), Epic 2 (Shipment Management), Epic 3 (Sensor Ingestion & Alerting), Epic 4 (Compliance Export), Epic 5 (Admin Panel). All 13 stories from docs/stories-baridi-ma.md complete. All 6 FRs from docs/prd-baridi-ma.md (FR-1 through FR-6) delivered and verified live.
+- Final automated test count: 241 unit/integration tests across 6 workspaces (web 48, auth 43, shipment 73, ingestion 24, alerting 26, compliance 27) + 6 E2E specs (auth, shipment, alerting, compliance-export, admin-flow x2) run live against the full Docker Compose stack in a real browser — 247 total, all passing.
+- CI/CD: GitHub Actions pipeline (lint, test w/ enforced 80% coverage gate, security-scan, 6-image build matrix) green on every push since Sprint 4. Self-hosted deploy-staging runner exists but is not a persistent service (known, user-accepted limitation — restart manually when needed; does not affect CI).
+- 5 video recordings across versions v0.1-v0.5 documenting each sprint's core flow live in a browser.
+- No open issues or unresolved risks beyond the already-accepted postcss dev-dependency advisory (.logs/risks.md) and the non-persistent deploy runner (both pre-existing, user-acknowledged, non-blocking for MVP).
