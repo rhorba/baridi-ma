@@ -43,7 +43,13 @@ jobs:
   security-scan:
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 (full history) — Gitleaks diffs the full commit range of
+      # a push event (base^..head); a multi-commit push with the default
+      # shallow (depth-1) checkout leaves that range's older commits
+      # unfetched, and Gitleaks fails with "unknown revision".
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Semgrep (SAST)
         uses: returntocorp/semgrep-action@v1
         with:

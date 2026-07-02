@@ -181,3 +181,8 @@
 - Stack torn down cleanly afterward (docker compose down), confirmed zero orphaned baridi-ma containers via docker ps -a.
 - Security: Semgrep (p/owasp-top-ten + p/secrets) on all Batch 3 changed/new files (Dockerfile, BFF route fix, .dockerignore, E2E spec) — 0 findings.
 - Sprint 4 (Epic 4: Compliance Export) is now fully complete: Stories 4.1 (Compliance Service backend) and 4.2 (BFF proxy + export UI) both done, tested, verified live, and video-recorded.
+
+## CI_CHECK — 2026-07-02
+- Push db29fe5 to origin/main: CI went RED. lint and test jobs passed; security-scan failed at the Gitleaks step with "unknown revision or path not in the working tree" trying to diff 6bd0d34^..db29fe5.
+- Root cause: this push contained 3 commits (Sprint 4 Batches 1-3). Gitleaks correctly computes the full push commit range (oldest-pushed-commit^..HEAD) to scan, but the security-scan job's actions/checkout@v4 step used the default shallow checkout (fetch-depth: 1), so the older commits/parents in that range were never fetched onto the runner — a latent bug that only a multi-commit push exposes (single-commit pushes in Sprints 1-3 never hit this path).
+- Fix: added `fetch-depth: 0` to the security-scan job's checkout step in .github/workflows/ci.yml. Per rule 11: stopped all other work, diagnosed, fixed, re-pushing now.
