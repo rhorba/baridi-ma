@@ -42,3 +42,25 @@
 - POST /compliance/:shipmentId/export both generates (or reuses) and returns the PDF synchronously in one call (ADR-3), no separate generate+download round trip.
 ## PLAN_APPROVED — 2026-07-02
 - User confirmed Batch 1 (Compliance Service backend, Story 4.1) go-ahead. Proceeding to EXECUTE phase.
+
+## UNDERSTAND — Sprint 5 (Epic 5: Admin Panel) — 2026-07-02
+- Scope: Story 5.1 (admin list/deactivate users, FR-6, Backend+Frontend, size M) and Story 5.2 (admin shipment oversight, Frontend only, size S), per docs/stories-baridi-ma.md.
+- Existing groundwork found: auth.users already has an is_active column; login and /auth/me already reject inactive users; GET /shipments already returns ALL shipments for role=admin (Story 5.2's backend need is already met).
+- Real gap found during review: POST /auth/refresh does NOT check is_active before minting a new access token — a deactivated user's still-valid refresh token (7-day TTL) would keep working via refresh indefinitely, undermining "deactivate". This needs a fix as part of 5.1, not just new list/deactivate endpoints.
+
+## BRAINSTORM — Sprint 5 — 2026-07-02
+- 5.1: list + deactivate only (no reactivate), matches FR-6 literally. Admin cannot deactivate their own account (lockout guard).
+- 5.1 gap fix: /auth/refresh will check is_active before minting a new access token.
+- 5.2: Shipment Service batch-resolves shipper/carrier/receiver emails via a new internal Auth Service endpoint, attached to each shipment only for role=admin responses; shipments list page shows them for admin.
+
+## PLAN_APPROVED — 2026-07-02
+- User confirmed Sprint 5 Batch 1 (backend: admin user list/deactivate, refresh is_active fix, batched owner-email resolution) go-ahead. Proceeding to EXECUTE phase.
+
+## UNDERSTAND/BRAINSTORM — Post-MVP: S3 storage + persistent runner — 2026-07-02
+- New scope beyond the planned 5-sprint backlog, requested directly by user. Architecture doc already anticipated this ("S3 (post-MVP)").
+- S3: MinIO added to docker-compose as a local S3-compatible emulator (no real AWS account needed for dev); Compliance Service uses the AWS S3 SDK, which works identically against real AWS S3 in any other environment via env vars only.
+- Data: clean cutover — compliance.exports.file_path renamed to storage_key and existing dev-only rows truncated (pre-launch, no real data to preserve).
+- Runner: install the existing self-hosted runner as a Windows service (manual start, not auto-boot-start) so it survives terminal closes without needing to remember `run.cmd` each time.
+
+## PLAN_APPROVED — 2026-07-02
+- User confirmed S3/MinIO storage migration Batch 1 go-ahead. Proceeding to EXECUTE phase.
