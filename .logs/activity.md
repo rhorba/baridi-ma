@@ -217,3 +217,6 @@
 - Stack torn down cleanly (docker compose down), zero orphaned containers confirmed.
 - Security: Semgrep (p/owasp-top-ten + p/secrets) on new E2E files — 0 findings.
 - Sprint 5 (Epic 5: Admin Panel) is now fully complete: Stories 5.1 (admin list/deactivate users + refresh-gap fix) and 5.2 (admin shipment oversight with owner emails) both done, tested, verified live, and video-recorded. This was the last sprint per docs/stories-baridi-ma.md's Sprint Allocation table.
+
+## CI_CHECK — 2026-07-02 (Sprint 5, green on first push)
+- Push 1343a8c to origin/main: CI fully GREEN on the first try (lint, test w/ 80%+ coverage gate, security-scan, all 6 build-matrix images). The fetch-depth fix from Sprint 4's close-out held up correctly for this multi-commit push too.
