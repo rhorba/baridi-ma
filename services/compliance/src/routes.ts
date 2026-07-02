@@ -13,7 +13,7 @@ interface ExportRow {
   shipment_id: string;
   generated_by: string;
   reading_hash: string;
-  file_path: string;
+  storage_key: string;
   created_at: string;
 }
 
@@ -50,19 +50,19 @@ export async function complianceRoutes(app: FastifyInstance) {
     ]);
     if (existing.rows[0]) {
       const row = existing.rows[0];
-      const bytes = await readExportFile(row.file_path);
+      const bytes = await readExportFile(row.storage_key);
       return reply.code(200).header("x-reading-hash", row.reading_hash).type("application/pdf").send(bytes);
     }
 
     const readings = shipment.assignedDeviceId ? await fetchDeviceReadings(shipment.assignedDeviceId) : [];
     const readingHash = hashReadings(readings);
     const pdfBytes = await generateCompliancePdf(shipment, readings, readingHash);
-    const filePath = await saveExportFile(shipmentId, pdfBytes);
+    const storageKey = await saveExportFile(shipmentId, pdfBytes);
 
     try {
       await app.pg.query(
-        "INSERT INTO compliance.exports (shipment_id, generated_by, reading_hash, file_path) VALUES ($1, $2, $3, $4)",
-        [shipmentId, claims.sub, readingHash, filePath],
+        "INSERT INTO compliance.exports (shipment_id, generated_by, reading_hash, storage_key) VALUES ($1, $2, $3, $4)",
+        [shipmentId, claims.sub, readingHash, storageKey],
       );
     } catch (err) {
       // Concurrent export requests both passed the SELECT above — the unique
@@ -73,7 +73,7 @@ export async function complianceRoutes(app: FastifyInstance) {
           shipmentId,
         ]);
         const row = winner.rows[0];
-        const bytes = await readExportFile(row.file_path);
+        const bytes = await readExportFile(row.storage_key);
         return reply.code(200).header("x-reading-hash", row.reading_hash).type("application/pdf").send(bytes);
       }
       throw err;

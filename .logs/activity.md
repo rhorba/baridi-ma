@@ -220,3 +220,13 @@
 
 ## CI_CHECK — 2026-07-02 (Sprint 5, green on first push)
 - Push 1343a8c to origin/main: CI fully GREEN on the first try (lint, test w/ 80%+ coverage gate, security-scan, all 6 build-matrix images). The fetch-depth fix from Sprint 4's close-out held up correctly for this multi-commit push too.
+
+## S3_MIGRATION_VERIFY — 2026-07-02
+- Post-MVP scope (user-requested, beyond the planned 5-sprint backlog): moved Compliance Service PDF storage from a local Docker volume to S3-compatible storage.
+- docker-compose.yml: added minio (S3-compatible server) + minio-init (one-shot bucket bootstrap via mc, compliance-service depends_on service_completed_successfully rather than just minio being healthy). Replaced compliance_data volume with minio_data.
+- Compliance Service: added @aws-sdk/client-s3, rewrote storage.ts to PUT/GET against S3 instead of local fs (forcePathStyle only when a custom S3_ENDPOINT is set, so the same code works unmodified against real AWS S3 — just unset S3_ENDPOINT and use real credentials/region). Dockerfile's local-dir chown step removed (no longer needed).
+- DB: migration 006_compliance_storage_key.sql renames compliance.exports.file_path to storage_key and truncates the table (clean cutover — pre-launch dev-only data).
+- Tests: storage.test.ts rewritten to mock S3Client.prototype.send; compliance.integration.test.ts's storage.js mock is now a stateful in-memory fake (keeps idempotency/race tests behaviorally real without a live S3 dependency in the fast suite). 28 compliance-service tests passing, 94.76% coverage.
+- Live verification: full stack rebuilt with MinIO, migration applied live, all 6 services healthy, minio-init exited 0 (bucket created), full E2E suite (6 specs) passed including compliance-export-flow — and directly confirmed via `mc ls` that a real PDF object landed in the bucket (not just that the HTTP flow reported success). Stack torn down cleanly, zero orphaned containers.
+- Security: Semgrep (p/owasp-top-ten + p/secrets) — 0 findings.
+- Not pushed yet — Batch 2 (persistent deploy runner) is next.

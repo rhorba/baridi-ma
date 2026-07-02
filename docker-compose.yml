@@ -93,6 +93,40 @@ services:
       postgres:
         condition: service_healthy
 
+  # S3-compatible local emulator (post-MVP architecture note: "S3 (post-MVP)").
+  # Compliance Service talks to it via the AWS S3 SDK — pointing that same SDK
+  # at real AWS S3 in another environment is an env-var change only, no code change.
+  minio:
+    image: minio/minio:RELEASE.2025-04-08T15-41-24Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: baridi-minio
+      MINIO_ROOT_PASSWORD: baridi-minio-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: creates the compliance bucket, then exits. compliance-service
+  # waits on this completing rather than just on minio being up, since a
+  # healthy MinIO server doesn't imply the bucket exists yet.
+  minio-init:
+    image: minio/mc:RELEASE.2025-04-08T15-39-49Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 baridi-minio baridi-minio-secret &&
+      mc mb --ignore-existing local/baridi-compliance
+      "
+
   compliance-service:
     build:
       context: .
@@ -103,16 +137,20 @@ services:
       PORT: 4005
       SHIPMENT_SERVICE_URL: http://shipment-service:4002
       INGESTION_SERVICE_URL: http://ingestion-service:4003
-      COMPLIANCE_STORAGE_DIR: /data/compliance
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: baridi-compliance
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY_ID: baridi-minio
+      S3_SECRET_ACCESS_KEY: baridi-minio-secret
     ports:
       - "4005:4005"
-    volumes:
-      - compliance_data:/data/compliance
     depends_on:
       postgres:
         condition: service_healthy
       shipment-service:
         condition: service_started
+      minio-init:
+        condition: service_completed_successfully
     # Not depends_on: ingestion-service — export tolerates it not being up yet
     # (fetchDeviceReadings returns [] on a failed fetch, same as shipment-service's
     # telemetry-client.ts pattern); a shipment can't reach "delivered" without
@@ -151,4 +189,4 @@ services:
 
 volumes:
   postgres_data:
-  compliance_data:
+  minio_data:

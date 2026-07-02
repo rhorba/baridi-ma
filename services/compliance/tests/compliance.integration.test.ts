@@ -2,15 +2,29 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from "vites
 import { GenericContainer, Wait, type StartedTestContainer } from "testcontainers";
 import { Pool } from "pg";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyJwt from "@fastify/jwt";
 
 vi.mock("../src/shipment-client.js", () => ({ fetchShipment: vi.fn() }));
 vi.mock("../src/ingestion-client.js", () => ({ fetchDeviceReadings: vi.fn() }));
+// In-memory fake S3 — keeps the idempotency/race tests behaviorally real
+// (write-then-read-back across two requests) without a real S3/MinIO
+// dependency in the fast test suite, same principle as the HTTP client mocks above.
+vi.mock("../src/storage.js", () => {
+  const store = new Map<string, Uint8Array>();
+  return {
+    saveExportFile: vi.fn(async (shipmentId: string, bytes: Uint8Array) => {
+      const key = `${shipmentId}.pdf`;
+      store.set(key, bytes);
+      return key;
+    }),
+    readExportFile: vi.fn(async (key: string) => Buffer.from(store.get(key)!)),
+  };
+});
 import { fetchShipment } from "../src/shipment-client.js";
 import { fetchDeviceReadings } from "../src/ingestion-client.js";
+import { saveExportFile, readExportFile } from "../src/storage.js";
 import { dbPlugin } from "../src/db.js";
 import { complianceRoutes } from "../src/routes.js";
 
@@ -63,11 +77,12 @@ beforeAll(async () => {
   process.env.DATABASE_URL = `postgresql://baridi:baridi@${host}:${port}/baridi_ma`;
   process.env.JWT_SECRET = "test-secret";
   process.env.INTERNAL_SERVICE_TOKEN = INTERNAL_TOKEN;
-  process.env.COMPLIANCE_STORAGE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "compliance-export-test-"));
 
   migrationPool = new Pool({ connectionString: process.env.DATABASE_URL });
-  const migrationSql = fs.readFileSync(path.join(__dirname, "../../../db/migrations/005_compliance_schema.sql"), "utf8");
-  await migrationPool.query(migrationSql);
+  for (const file of ["005_compliance_schema.sql", "006_compliance_storage_key.sql"]) {
+    const migrationSql = fs.readFileSync(path.join(__dirname, "../../../db/migrations", file), "utf8");
+    await migrationPool.query(migrationSql);
+  }
 
   app = Fastify();
   await app.register(fastifyJwt, { secret: process.env.JWT_SECRET });
@@ -85,6 +100,10 @@ afterAll(async () => {
 beforeEach(() => {
   vi.mocked(fetchShipment).mockReset();
   vi.mocked(fetchDeviceReadings).mockReset();
+  // .mockClear() (not .mockReset()) — the fake-S3 implementation from the
+  // vi.mock factory above must survive between tests, only call history resets.
+  vi.mocked(saveExportFile).mockClear();
+  vi.mocked(readExportFile).mockClear();
 });
 
 describe("internal-token guard", () => {

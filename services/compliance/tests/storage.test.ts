@@ -1,38 +1,58 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import fs from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { S3Client } from "@aws-sdk/client-s3";
 
-let tmpDir: string;
+let sendSpy: ReturnType<typeof vi.spyOn>;
 
-beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "compliance-storage-test-"));
-  process.env.COMPLIANCE_STORAGE_DIR = tmpDir;
+beforeEach(() => {
+  process.env.S3_BUCKET = "test-bucket";
+  process.env.S3_ENDPOINT = "http://minio-test:9000";
+  sendSpy = vi.spyOn(S3Client.prototype, "send");
 });
 
-afterEach(async () => {
-  delete process.env.COMPLIANCE_STORAGE_DIR;
-  await fs.rm(tmpDir, { recursive: true, force: true });
+afterEach(() => {
+  sendSpy.mockRestore();
+  delete process.env.S3_BUCKET;
+  delete process.env.S3_ENDPOINT;
 });
 
-describe("storage", () => {
-  it("saves a file and reads back identical bytes", async () => {
-    const { saveExportFile, readExportFile, exportFilePath } = await import("../src/storage.js");
-    const shipmentId = "11111111-1111-1111-1111-111111111111";
-    const bytes = new Uint8Array([1, 2, 3, 4]);
-
-    const filePath = await saveExportFile(shipmentId, bytes);
-    expect(filePath).toBe(exportFilePath(shipmentId));
-
-    const readBack = await readExportFile(filePath);
-    expect(Array.from(readBack)).toEqual([1, 2, 3, 4]);
+describe("exportStorageKey", () => {
+  it("derives a predictable key from the shipment id", async () => {
+    const { exportStorageKey } = await import("../src/storage.js");
+    expect(exportStorageKey("11111111-1111-1111-1111-111111111111")).toBe("11111111-1111-1111-1111-111111111111.pdf");
   });
+});
 
-  it("creates the storage directory if it doesn't exist yet", async () => {
+describe("saveExportFile", () => {
+  it("PUTs the bytes to the configured bucket/key and returns the key", async () => {
+    sendSpy.mockResolvedValue({});
     const { saveExportFile } = await import("../src/storage.js");
-    process.env.COMPLIANCE_STORAGE_DIR = path.join(tmpDir, "nested", "dir");
-    const filePath = await saveExportFile("22222222-2222-2222-2222-222222222222", new Uint8Array([9]));
-    const stat = await fs.stat(filePath);
-    expect(stat.isFile()).toBe(true);
+
+    const key = await saveExportFile("shipment-1", new Uint8Array([1, 2, 3]));
+
+    expect(key).toBe("shipment-1.pdf");
+    expect(sendSpy).toHaveBeenCalledTimes(1);
+    const command = sendSpy.mock.calls[0][0] as { input: Record<string, unknown> };
+    expect(command.input).toMatchObject({
+      Bucket: "test-bucket",
+      Key: "shipment-1.pdf",
+      ContentType: "application/pdf",
+    });
+  });
+});
+
+describe("readExportFile", () => {
+  it("GETs the object and streams its body into a Buffer", async () => {
+    async function* fakeBody() {
+      yield new Uint8Array([1, 2]);
+      yield new Uint8Array([3]);
+    }
+    sendSpy.mockResolvedValue({ Body: fakeBody() });
+    const { readExportFile } = await import("../src/storage.js");
+
+    const buf = await readExportFile("shipment-1.pdf");
+
+    expect(Array.from(buf)).toEqual([1, 2, 3]);
+    const command = sendSpy.mock.calls[0][0] as { input: Record<string, unknown> };
+    expect(command.input).toMatchObject({ Bucket: "test-bucket", Key: "shipment-1.pdf" });
   });
 });

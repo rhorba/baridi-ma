@@ -10,8 +10,5 @@ RUN npm run build --workspace=@baridi-ma/shared-types
 RUN npm run build --workspace=@baridi-ma/compliance-service
 WORKDIR /repo/services/compliance
 EXPOSE 4005
-# The compliance_data named volume is created root-owned on first mount —
-# pre-create and chown its mountpoint so the "node" user can write PDFs to it.
-RUN mkdir -p /data/compliance && chown node:node /data/compliance
 USER node
 CMD ["node", "dist/main.js"]
