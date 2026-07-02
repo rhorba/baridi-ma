@@ -67,3 +67,10 @@
 - compliance-service: 94.25% stmts, 89.47% branch, 100% funcs, 94.25% lines (27 tests / 7 files)
 - shipment-service (incremental, new internal endpoint): 98.93% stmts, 89.91% branch, 100% funcs, 98.93% lines (69 tests / 6 files, whole suite)
 - Gate: 80% combined — PASSED for both services.
+
+## Sprint 4 (Epic 4: Compliance Export) — SNAPSHOT — 2026-07-02
+- Stories complete: 4.1 (Compliance Service backend), 4.2 (BFF proxy + export UI). Sprint 4 closed.
+- New/changed test totals this sprint: shipment-service +4 tests (69 total), compliance-service 27 new tests across 7 files (all-new service), apps/web +3 tests (41 total), e2e +1 new spec (4 total specs, all passing live).
+- Coverage: compliance-service 94.25%, shipment-service 98.93%, apps/web 100% stmts — all clear the 80% gate (rule 6).
+- 3 real bugs found only once the stack ran live (not caught by unit/integration tests — all infra/runtime-environment classes of bug): missing root .dockerignore breaking multi-service docker builds; Fastify rejecting Content-Type:application/json on a bodyless POST; Docker named-volume root-ownership blocking non-root PDF writes. All 3 fixed and re-verified live before push.
+- v0.4 video: .recordings/v0.4-2026-07-02.webm.

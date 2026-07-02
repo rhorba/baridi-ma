@@ -1,0 +1,15 @@
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.next/
+**/.next/
+.git/
+.turbo/
+coverage/
+**/coverage/
+e2e/output/
+e2e/test-results/
+e2e/playwright-report/
+.recordings/
+services/compliance/storage/

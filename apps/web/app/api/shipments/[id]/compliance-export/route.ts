@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { requireBearerToken } from "../../../../../lib/api-auth";
-import { internalHeaders } from "../../../../../lib/internal-fetch";
 
 const COMPLIANCE_SERVICE_URL = process.env.COMPLIANCE_SERVICE_URL ?? "http://localhost:4005";
 
@@ -14,7 +13,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   const res = await fetch(`${COMPLIANCE_SERVICE_URL}/compliance/${id}/export`, {
     method: "POST",
-    headers: internalHeaders({ authorization: `Bearer ${auth.token}` }),
+    // No request body, so deliberately not using internal-fetch's internalHeaders()
+    // helper — it always sets Content-Type: application/json, and Fastify's default
+    // JSON body parser rejects that combination ("Body cannot be empty...") before
+    // the route handler ever runs.
+    headers: { "x-internal-token": process.env.INTERNAL_SERVICE_TOKEN ?? "", authorization: `Bearer ${auth.token}` },
   });
   const body = await res.arrayBuffer();
   const headers = new Headers();
