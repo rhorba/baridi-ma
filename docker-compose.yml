@@ -127,6 +127,7 @@ services:
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       AUTH_SERVICE_URL: http://auth-service:4001
       SHIPMENT_SERVICE_URL: http://shipment-service:4002
+      COMPLIANCE_SERVICE_URL: http://compliance-service:4005
     ports:
       - "3000:3000"
     depends_on:

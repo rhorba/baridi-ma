@@ -31,6 +31,7 @@ export default function ShipmentDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [carrierEmail, setCarrierEmail] = useState("");
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [revealedDeviceToken, setRevealedDeviceToken] = useState(searchParams.get("deviceToken"));
 
   const load = useCallback(async () => {
@@ -104,8 +105,31 @@ export default function ShipmentDetailPage() {
     await load();
   }
 
+  async function exportCompliancePdf() {
+    setExporting(true);
+    setError(null);
+    const res = await authFetch(`/api/shipments/${id}/compliance-export`, { method: "POST" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(typeof data.error === "string" ? data.error : "Couldn't generate the compliance PDF");
+      setExporting(false);
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `compliance-${id}.pdf`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setExporting(false);
+  }
+
   const canAssignCarrier = user.role === "shipper" && shipment.shipperId === user.id && shipment.status === "created";
   const canUpdateStatus = user.role === "carrier" && shipment.carrierId === user.id;
+  const canExportCompliance =
+    shipment.status === "delivered" &&
+    (user.role === "admin" || (user.role === "receiver" && shipment.receiverId === user.id));
   const nextStatuses = NEXT_STATUSES[shipment.status];
   const latest = readings[readings.length - 1];
 
@@ -167,6 +191,19 @@ export default function ShipmentDetailPage() {
         <h2 className="mb-2 font-medium">Alerts</h2>
         <AlertsList alerts={alerts} />
       </div>
+
+      {canExportCompliance && (
+        <div className="mt-6 rounded border border-slate-200 p-4">
+          <h2 className="mb-2 font-medium">Compliance</h2>
+          <button
+            onClick={exportCompliancePdf}
+            disabled={exporting}
+            className="rounded bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {exporting ? "Generating…" : "Export Compliance PDF"}
+          </button>
+        </div>
+      )}
 
       {canAssignCarrier && !shipment.carrierId && (
         <form onSubmit={assignCarrier} className="mt-6 flex flex-col gap-2 rounded border border-slate-200 p-4">

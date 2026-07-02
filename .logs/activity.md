@@ -159,3 +159,13 @@
 - Lint: clean (apps/web ESLint, only workspace with a lint script). Build: both services compile clean via tsc.
 - Security: Semgrep (p/owasp-top-ten + p/secrets) on all new/changed files — 0 findings. Gitleaks/Trivy not run locally (not installed); will run in CI per rule 11 on push.
 - NOT pushed yet — this is Batch 1 of 3 for Sprint 4 (Batch 2: BFF proxy + export UI button; Batch 3: E2E, v0.4 video, final push). Per rule 7, push happens at sprint end, not per-batch.
+
+## BATCH_2_VERIFY — 2026-07-02
+- Sprint 4 Batch 2 (BFF proxy + export UI, Story 4.2) implemented and verified.
+- BFF: new COMPLIANCE_SERVICE_URL env var (docker-compose web service + .env.example). New proxy route apps/web/app/api/shipments/[id]/compliance-export/route.ts — POST, JWT-gated like other proxies, but streams the upstream response body/content-type/x-reading-hash through unchanged (PDF on success, JSON on error) instead of re-serializing as JSON.
+- UI: shipment detail page gets an "Export Compliance PDF" button, visible only when shipment.status === 'delivered' AND (role === 'admin' OR (role === 'receiver' AND receiverId === user.id)). Click triggers the proxy route, converts the response to a Blob, and downloads it via a temporary anchor element.
+- Tests: 3 new BFF route tests (401 guard, binary passthrough with headers, JSON error passthrough) — 100% coverage on the new route. Full apps/web suite: 41/41 passing, 100% stmts/lines coverage.
+- Build: next build compiles clean, new route appears in the route manifest. Lint: clean (next lint via ESLint).
+- Security: Semgrep (p/owasp-top-ten + p/secrets) on new/changed files — 0 findings.
+- Full workspace re-run (all 6 workspaces) after Batch 2 changes: all green, no regressions.
+- NOT pushed yet — this is Batch 2 of 3. Batch 3 remaining: Playwright E2E covering the full delivered -> export -> download flow, v0.4 video recording, then push + confirm CI green per rule 7/9/11.
