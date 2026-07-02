@@ -199,3 +199,11 @@
 - Tests: auth-service 43 tests (31 in the main integration file, up from 27; 12 new: 4 by-ids, 8 admin routes), shipment-service 73 tests (up from 69; 5 new: 3 internal-client unit, 1 owner-email integration, plus the earlier count). Coverage: auth-service 97.95%, shipment-service 98.99% — both clear the 80% gate.
 - Security: Semgrep found the known Fastify reply.send() XSS false-positive on the new deactivate endpoint (same pattern flagged in Sprint 2) — suppressed with the established nosemgrep + rationale comment, rescanned clean (0 findings).
 - Not pushed yet — Batch 2 (BFF proxy routes + admin UI) is next.
+
+## BATCH_2_VERIFY — Sprint 5 — 2026-07-02
+- Sprint 5 Batch 2 (BFF proxy + admin UI, Stories 5.1/5.2 frontend) implemented and verified.
+- BFF: GET /api/admin/users, PATCH /api/admin/users/[id]/deactivate — same bodyless-PATCH Content-Type pitfall as Sprint 4's compliance-export route caught and avoided proactively this time (not left to be found live).
+- UI: new /admin/users page (table + Deactivate button, hidden for the admin's own row and already-deactivated users), "Admin" link on the dashboard for role===admin, /admin added to middleware.ts's PROTECTED_PATHS. Shipments list now shows shipper/carrier/receiver emails inline for admin viewers.
+- Tests: 5 new BFF route tests + 2 new middleware tests. Full apps/web suite: 48/48 passing, 100% stmt/line coverage. Full 6-workspace re-run after the shared-types change (AdminShipment/AdminUserSummary added): all green, no regressions.
+- Build/lint clean, Semgrep 0 findings.
+- Not pushed yet — Batch 3 (E2E, v0.5 video, push, CI-green, final Sprint 5/project close-out) is next.

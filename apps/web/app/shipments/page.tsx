@@ -4,11 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../lib/auth-context";
 import { StatusBadge } from "../../components/status-badge";
-import type { Shipment } from "@baridi-ma/shared-types";
+import type { AdminShipment } from "@baridi-ma/shared-types";
 
 export default function ShipmentsPage() {
   const { user, loading: authLoading, authFetch } = useAuth();
-  const [shipments, setShipments] = useState<Shipment[] | null>(null);
+  // Only populated with shipperEmail/carrierEmail/receiverEmail for role=admin
+  // (see GET /shipments in services/shipment/src/routes.ts) — safe to type as
+  // AdminShipment since those fields are only ever read below when role===admin.
+  const [shipments, setShipments] = useState<AdminShipment[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -65,6 +68,12 @@ export default function ShipmentsPage() {
                   <p className="text-sm text-[var(--color-text-muted)]">
                     {s.origin} → {s.destination}
                   </p>
+                  {user?.role === "admin" && (
+                    <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                      Shipper: {s.shipperEmail ?? "—"} · Carrier: {s.carrierEmail ?? "—"} · Receiver:{" "}
+                      {s.receiverEmail ?? "—"}
+                    </p>
+                  )}
                 </div>
                 <StatusBadge status={s.status} />
               </a>

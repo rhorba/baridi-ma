@@ -30,6 +30,14 @@ export default function DashboardPage() {
       >
         View Shipments
       </Link>
+      {user.role === "admin" && (
+        <Link
+          href="/admin/users"
+          className="mt-4 ml-2 inline-block rounded bg-[var(--color-secondary)] px-4 py-2 font-medium text-white"
+        >
+          Admin
+        </Link>
+      )}
       <button
         onClick={handleLogout}
         className="mt-4 ml-2 rounded bg-[var(--color-secondary)] px-4 py-2 font-medium text-white"

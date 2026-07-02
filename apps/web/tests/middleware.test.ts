@@ -32,4 +32,19 @@ describe("middleware", () => {
     const response = middleware(request);
     expect(response.headers.get("location")).toBeNull();
   });
+
+  it("redirects to /login when accessing /admin without a session", () => {
+    const request = new NextRequest("http://localhost/admin/users");
+    const response = middleware(request);
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("http://localhost/login");
+  });
+
+  it("allows /admin through with a session cookie", () => {
+    const request = new NextRequest("http://localhost/admin/users", {
+      headers: { cookie: "refreshToken=abc123" },
+    });
+    const response = middleware(request);
+    expect(response.headers.get("location")).toBeNull();
+  });
 });

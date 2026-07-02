@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const PROTECTED_PATHS = ["/dashboard", "/shipments"];
+const PROTECTED_PATHS = ["/dashboard", "/shipments", "/admin"];
 
 // Coarse, cookie-presence-only redirect for page loads. The refresh-token
 // cookie is httpOnly so this can't forge access — real authorization happens
@@ -19,5 +19,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/shipments/:path*", "/login"],
+  matcher: ["/dashboard/:path*", "/shipments/:path*", "/admin/:path*", "/login"],
 };
